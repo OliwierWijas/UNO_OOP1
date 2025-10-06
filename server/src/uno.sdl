@@ -1,43 +1,62 @@
-type Score {
-  slot: String!,
-  score: Int
+type Card {
+  type: String!
+  color: String
+  number: Int
 }
 
-type ActiveGame {
-  id: ID!,
-  pending: Boolean,
-  players: [String!]!,
-  playerInTurn: Int!,
-  roll: [Int!]!,
-  rolls_left: Int!,
-  scores: [[Score!]!]!
+type PlayerHand {
+  playerName: String!
+  playerCards: [Card!]!
+  score: Int!
+}
+
+type DiscardPile {
+  pile: [Card!]!
+}
+
+type Deck {
+  cards: [Card!]!
+}
+
+type Round {
+  playerHands: [PlayerHand!]!
+  currentPlayer: PlayerHand
+  discardPile: DiscardPile!
+  deck: Deck!
+  isFinished: Boolean!
+}
+
+type Game {
+  id: String!
+  rounds: [Round!]!
+  currentRound: Round
+  isGameFinished: Boolean!
 }
 
 type PendingGame {
-  id: ID!,
-  pending: Boolean,
-  creator: String!,
-  players: [String!]!,
+  id: String!
+  creator: String!
   number_of_players: Int!
+  players: [String!]!
 }
 
-union Game = ActiveGame | PendingGame
+union GameOrPending = Game | PendingGame
 
 type Query {
-  games: [ActiveGame!]!,
-  game(id: ID!): ActiveGame,
+  games: [Game!]!
+  game(id: String!): Game
   pending_games: [PendingGame!]!
-  pending_game(id: ID!): PendingGame
+  pending_game(id: String!): PendingGame
 }
 
 type Mutation {
-  new_game(creator: String!, number_of_players: Int!): Game!,
-  join(id: ID!, player: String!): Game!,
-  reroll(id: ID!, held: [Int!]!, player: String!): ActiveGame!,
-  register(id: ID!, slot: String!, player: String!): ActiveGame!
+  new_game(creator: String!, number_of_players: Int!): GameOrPending!
+  join(id: String!, player: String!): GameOrPending!
+  draw_card(id: String!, player: String!): Game!
+  play_card(id: String!, player: String!, cardIndex: Int!): Game!
 }
 
 type Subscription {
-  active: ActiveGame,
-  pending: PendingGame
+  game_updated(id: String!): Game
+  pending_updated: PendingGame
 }
