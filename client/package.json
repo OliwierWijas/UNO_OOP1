@@ -16,6 +16,10 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@apollo/client": "^3.13.9",
+    "graphql": "^16.11.0",
+    "graphql-ws": "^6.0.6",
+    "pinia": "^2.2.6",
     "domain": "../domain",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1"

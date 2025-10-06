@@ -1,4 +1,3 @@
-import { ref } from "vue";
 import type { Card } from "./card";
 import type { Type } from "./types";
 
@@ -15,39 +14,39 @@ export interface PlayerHand {
 }
 
 export function playerHand(name: string, initialCards: Card<Type>[]): PlayerHand {
-  const playerCards = ref<Card<Type>[]>([...initialCards]);
-  const score = ref(0);
+  let playerCards : Card<Type>[] = [...initialCards];
+  let score = 0;
 
   return {
     playerName: name,
 
     get playerCards() {
-      return playerCards.value;
+      return playerCards;
     },
 
-    score: score.value,
+    score: score,
 
     putCardBack(card: Card<Type>, index: number): void {
       if (index < 0) index = 0;
-      if (index > playerCards.value.length) index = playerCards.value.length;
+      if (index > playerCards.length) index = playerCards.length;
 
-      playerCards.value.splice(index, 0, card);
+      playerCards.splice(index, 0, card);
     },
 
     takeCards(cards: Card<Type>[]) {
-      playerCards.value.push(...cards);
+      playerCards.push(...cards);
     },
 
     playCard(index: number): Card<Type> {
-      return playerCards.value.splice(index, 1)[0];
+      return playerCards.splice(index, 1)[0];
     },
 
     addToScore(points: number) {
-      score.value += points;
+      score += points;
     },
 
     resetCards() {
-      playerCards.value = [];
+      playerCards = [];
     },
   };
 }

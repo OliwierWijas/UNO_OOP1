@@ -11,40 +11,110 @@ import type { Type } from 'domain/src/model/types';
 import { reactive } from 'vue';
 import { round as createRound } from 'domain/src/model/round';
 import { deck as createDeck } from 'domain/src/model/deck';
+import { ref, onMounted, onUnmounted } from 'vue';
+import {
+  onGameUpdated,
+  onPendingUpdated,
+  draw_card,
+  play_card,
+  game as getGame
+} from '@/model/uno-client';
 import { discardPile as createDiscardPile } from 'domain/src/model/discardPile';
 
 const route = useRoute();
 
-const gameDeck = createDeck();
-gameDeck.shuffle();
+const currentGameId = ref<string | null>(null);
+const isPending = ref(false);
 
-const discardPile = reactive(createDiscardPile());
+const gameDeck = createDeck();
+//gameDeck.shuffle();
+const discardPile = createDiscardPile();
 
 const playerName = (route.query.name as string) || 'Player';
-const playerHand = reactive(createPlayerHand(playerName, []));
+const playerHand = createPlayerHand(playerName, []);
 
 // Example setup: you + 3 AI opponents
 const opponents = [
-  reactive(createPlayerHand('Alice', [])),
-  reactive(createPlayerHand('Bob', [])),
-  reactive(createPlayerHand('Charlie', [])),
-  reactive(createPlayerHand('Diana', [])), 
+  createPlayerHand('Alice', []),
+  createPlayerHand('Bob', []),
+  createPlayerHand('Charlie', []),
+  createPlayerHand('Diana', []),
 ];
 
-const currentRound = reactive(createRound([playerHand, ...opponents], gameDeck, discardPile));
+const currentRound = createRound([playerHand, ...opponents], gameDeck, discardPile);
+// temporary for testing
+// currentRound.nextPlayer();
+
+// function handleCardDrawn(card: Card<Type>) {
+//   playerHand.takeCards([card]);
+// }
+
+// function handleCardPlayed(payload: { cardIndex: number; card: Card<Type> }) {
+//   if (!currentRound.putCard(payload.card)) {
+//     currentRound.currentPlayer?.putCardBack(payload.card, payload.cardIndex);
+//   }
+// }
+onMounted(() => {
+  // If we have a game ID from route, subscribe to it
+  const gameId = route.params.id as string;
+  if (gameId) {
+    currentGameId.value = gameId;
+    subscribeToGame(gameId);
+  }
+});
+onUnmounted(() => {
+  // Cleanup subscriptions if needed
+});
+
+async function subscribeToGame(gameId: string) {
+  onGameUpdated((updatedGame) => {
+    if (updatedGame.id === gameId) {
+      // Update client state with server state
+      updateClientGameState(updatedGame);
+    }
+  });
+}
+
+function updateClientGameState(serverGame: any) {
+  // Update your client game state based on server state
+  // This will depend on your game structure
+  console.log('Game updated:', serverGame);
+}
+
+async function handleCardDrawn(card: Card<Type>) {
+  if (!currentGameId.value) return;
+
+  try {
+    const updatedGame = await draw_card(currentGameId.value, playerName);
+    playerHand.takeCards([card]);
+    updateClientGameState(updatedGame);
+  } catch (error) {
+    console.error('Error drawing card:', error);
+  }
+}
+
+async function handleCardPlayed(payload: { cardIndex: number; card: Card<Type> }) {
+  if (!currentGameId.value) return;
+
+  try {
+    const updatedGame = await play_card(currentGameId.value, playerName, payload.cardIndex);
+
+    if (!currentRound.putCard(payload.card)) {
+      currentRound.currentPlayer?.putCardBack(payload.card, payload.cardIndex);
+    }
+
+    updateClientGameState(updatedGame);
+  } catch (error) {
+    console.error('Error playing card:', error);
+    // Put card back if play failed
+    currentRound.currentPlayer?.putCardBack(payload.card, payload.cardIndex);
+  }
+}
 
 // temporary for testing
 currentRound.nextPlayer();
 
-function handleCardDrawn(card: Card<Type>) {
-  playerHand.takeCards([card]);
-}
 
-function handleCardPlayed(payload: { cardIndex: number; card: Card<Type> }) {
-  if (!currentRound.putCard(payload.card)) {
-    currentRound.currentPlayer?.putCardBack(payload.card, payload.cardIndex);
-  }
-}
 </script>
 
 <template>
@@ -91,7 +161,7 @@ function handleCardPlayed(payload: { cardIndex: number; card: Card<Type> }) {
 <style scoped>
 .game-container {
   position: fixed;
-  inset: 0; 
+  inset: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -105,7 +175,7 @@ function handleCardPlayed(payload: { cardIndex: number; card: Card<Type> }) {
   justify-content: center;
   align-items: center;
   gap: 20px;
-  margin-top: 5vh;  
+  margin-top: 5vh;
 }
 
 .opponent-top {

@@ -48,7 +48,7 @@ export function round(hands: PlayerHand[], roundDeck: Deck, discardPile: Discard
     putCard(card: Card<Type>) : boolean {
       const lastCard = this.discardPile.getTopCard()
 
-      if (this.currentPlayer && RulesHelper.canBePutOnTop(lastCard, card)) {
+      if (this.currentPlayer && lastCard && RulesHelper.canBePutOnTop(lastCard, card)) {
         this.discardPile.addCard(card)
 
         if (this.currentPlayer.playerCards.length === 0) {

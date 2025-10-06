@@ -1,7 +1,8 @@
-import { RulesHelper } from '@/utils/rules_helper'
+import { RulesHelper } from '../utils/rules_helper'
 import type { Deck } from './deck'
 import type { PlayerHand } from './playerHand'
 import { round, type Round } from './round'
+import type { DiscardPile } from './discardPile'
 
 export interface Game {
   rounds: Round[]
