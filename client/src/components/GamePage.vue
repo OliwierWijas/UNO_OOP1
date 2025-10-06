@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import type { Card } from '@/model/card';
-import { playerHand as createPlayerHand } from '@/model/playerHand';
+import type { Card } from 'domain/src/model/card';
+import { playerHand as createPlayerHand } from 'domain/src/model/playerHand';
 import { useRoute } from 'vue-router';
 import PlayerHand from './PlayerHand.vue';
 import OpponentHand from './OpponentHand.vue';
 import Deck from './Deck.vue';
 import DiscardPile from './DiscardPile.vue';
 import TopInfoBar from './TopInfoBar.vue';
-import type { Type } from '@/model/types';
+import type { Type } from 'domain/src/model/types';
 import { reactive } from 'vue';
-import { round as createRound } from '@/model/round';
-import { deck as createDeck } from '@/model/deck';
-import { discardPile as createDiscardPile } from '@/model/discardPile';
+import { round as createRound } from 'domain/src/model/round';
+import { deck as createDeck } from 'domain/src/model/deck';
+import { discardPile as createDiscardPile } from 'domain/src/model/discardPile';
 
 const route = useRoute();
 

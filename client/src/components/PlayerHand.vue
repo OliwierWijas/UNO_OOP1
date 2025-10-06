@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { type PropType, ref, defineProps, defineEmits } from 'vue'
-import type { PlayerHand } from "@/model/playerHand";
+import type { PlayerHand } from "domain/src/model/playerHand";
 import UnoCard from "./Card.vue";
-import type { Card } from "@/model/card";
-import type { Type } from "@/model/types";
+import type { Card } from "domain/src/model/card";
+import type { Type } from "domain/src/model/types";
 
 const props = defineProps({
   playerHand: {

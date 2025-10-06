@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { Card } from '@/model/card';
-import type { Type } from '@/model/types';
+import type { Card } from 'domain/src/model/card';
+import type { Type } from 'domain/src/model/types';
 import deckImg from '@/components/images/Back_Card.png';
-import type { Deck } from '@/model/deck';
+import type { Deck } from 'domain/src/model/deck';
 
 const props = defineProps<{
   deck: Deck

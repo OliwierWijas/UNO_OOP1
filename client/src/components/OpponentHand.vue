@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PlayerHand } from "@/model/playerHand";
+import type { PlayerHand } from "domain/src/model/playerHand";
 import opponentImg from "@/components/images/opponentCards.png"
 
 defineProps<{

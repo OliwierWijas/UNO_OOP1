@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { Card } from "@/model/card";
-import type { Type } from "@/model/types";
+import type { Card } from "domain/src/model/card";
+import type { Type } from "domain/src/model/types";
 import { computed, type PropType } from "vue";
 
 const props = defineProps({

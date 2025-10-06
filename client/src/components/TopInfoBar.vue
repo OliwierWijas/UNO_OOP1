@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { type PropType } from 'vue';
-import type { PlayerHand } from '@/model/playerHand';
+import type { PlayerHand } from 'domain/src/model/playerHand';
 
 const props = defineProps({
   players: {
