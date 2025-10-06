@@ -1,0 +1,43 @@
+type Score {
+  slot: String!,
+  score: Int
+}
+
+type ActiveGame {
+  id: ID!,
+  pending: Boolean,
+  players: [String!]!,
+  playerInTurn: Int!,
+  roll: [Int!]!,
+  rolls_left: Int!,
+  scores: [[Score!]!]!
+}
+
+type PendingGame {
+  id: ID!,
+  pending: Boolean,
+  creator: String!,
+  players: [String!]!,
+  number_of_players: Int!
+}
+
+union Game = ActiveGame | PendingGame
+
+type Query {
+  games: [ActiveGame!]!,
+  game(id: ID!): ActiveGame,
+  pending_games: [PendingGame!]!
+  pending_game(id: ID!): PendingGame
+}
+
+type Mutation {
+  new_game(creator: String!, number_of_players: Int!): Game!,
+  join(id: ID!, player: String!): Game!,
+  reroll(id: ID!, held: [Int!]!, player: String!): ActiveGame!,
+  register(id: ID!, slot: String!, player: String!): ActiveGame!
+}
+
+type Subscription {
+  active: ActiveGame,
+  pending: PendingGame
+}
