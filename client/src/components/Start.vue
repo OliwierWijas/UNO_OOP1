@@ -2,6 +2,11 @@
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import * as api from "../model/uno-client"
+import { onMounted } from "vue";
+import { usePendingGamesStore } from "@/stores/PendingGamesStore";
+
+const pendingGamesStore = usePendingGamesStore()
+const my_pending_games = computed(() => pendingGamesStore.games)
 
 const router = useRouter();
 const playerName = ref("");
@@ -14,6 +19,15 @@ async function startGame() {
   console.log(game)
   //router.push({ name: "Game", query: { name: playerName.value } });
 }
+
+  function liveUpdateGames() {
+    api.onPendingGamesUpdated(pendingGamesStore.upsert);
+    console.log(my_pending_games)
+  }
+  
+  onMounted(async () => {
+    liveUpdateGames();
+  })
 </script>
 
 <template>

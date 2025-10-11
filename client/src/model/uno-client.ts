@@ -2,37 +2,10 @@ import { ApolloClient, gql, InMemoryCache, type DocumentNode, split, HttpLink } 
 import { getMainDefinition } from '@apollo/client/utilities';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
-import { game as createGame, type Game } from "domain/src/model/game";
-import { playerHand } from "domain/src/model/playerHand";
-import { round as createRound } from "domain/src/model/round";
-import { deck as createDeck } from "domain/src/model/deck";
-import { discardPile as createDiscardPile } from "domain/src/model/discardPile";
-import type { Card } from "domain/src/model/card";
-import type { Type } from "domain/src/model/types";
+import { type Game } from "domain/src/model/game";
 
-type Indexed<T, pending extends boolean> = Readonly<T & {id: string, pending: pending}>
-
-// Define your domain types for the client
-export type IndexedGame = Indexed<Game, false>
-export type IndexedPendingGame = Indexed<{
-  creator: string;
-  number_of_players: number;
-  players: string[];
-}, true>
-
-// GraphQL response types
-type GraphQLGame = {
-  id: string;
-  rounds: any[];
-  currentRound: any;
-  isGameFinished: boolean;
-}
-
-type GraphQLPendingGame = {
-  id: string;
-  creator: string;
-  number_of_players: number;
-  players: string[];
+export type SimpleGameDTO = {
+  name: string
 }
 
 // Conversion functions
@@ -94,6 +67,9 @@ async function mutate(mutation: DocumentNode, variables?: Object): Promise<any> 
   return result.data
 }
 
+//Queries
+
+// Mutations
 export async function create_game(name: string): Promise<Game> {
   const response = await mutate(gql`
     mutation create_game($name: String!) {
@@ -108,22 +84,20 @@ export async function create_game(name: string): Promise<Game> {
   return { name: result.name } as Game;
 }
 
-
 // Subscriptions
-export async function onGameCreated(subscriber: (games: Game[]) => any) {
-  const gameSubscriptionQuery = gql`subscription GameSubscription {
-    game_updated {
-      id
-      rounds
-      currentRound
-      isGameFinished
+export async function onPendingGamesUpdated(subscriber: (games: SimpleGameDTO[]) => void) {
+  const pendingGamesSubscription = gql`subscription PendingGamesSubscription {
+    pending_games_updated {
+      name
     }
   }`
-  const gameObservable = apolloClient.subscribe({ query: gameSubscriptionQuery })
-  gameObservable.subscribe({
+  const observable = apolloClient.subscribe({ query: pendingGamesSubscription })
+  observable.subscribe({
     next({data}) {
-      const games: Game[] = data.games
-      subscriber(games)
+      if (data && data.pending_games_updated) {
+        const pendingGames: SimpleGameDTO[] = data.pending_games_updated
+        subscriber(pendingGames)
+      }
     },
     error(err: any) {
       console.error(err)
