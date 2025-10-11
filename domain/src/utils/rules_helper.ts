@@ -1,7 +1,7 @@
-import type { Card } from '@/model/card'
-import type { PlayerHand } from '@/model/playerHand'
-import type { Round } from '@/model/round'
-import type { Type } from '@/model/types'
+import type { Card } from '../model/card'
+import type { PlayerHand } from '../model/playerHand'
+import type { Round } from '../model/round'
+import type { Type } from '../model/types'
 
 export class RulesHelper {
   static canBePutOnTop(topCard: Card<Type> | undefined, chosenCard: Card<Type> | undefined): boolean {

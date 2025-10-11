@@ -9,11 +9,11 @@ import { makeExecutableSchema } from '@graphql-tools/schema'
 import { useServer } from 'graphql-ws/lib/use/ws'
 import { PubSub } from 'graphql-subscriptions'
 import cors from 'cors'
-
 import { MemoryStore } from './memorystore'
 import { create_api } from './api'
-import { create_resolvers, toGraphQLGame } from './resolvers'
+import { create_resolvers } from './resolvers'
 import { readFileSync } from 'fs'
+import { CreateGameDTO } from './servermodel'
 
 const typeDefs = readFileSync('./src/uno.sdl', 'utf8')
 
@@ -21,13 +21,9 @@ async function startServer() {
   const pubsub = new PubSub()
   const store = new MemoryStore()
   const broadcaster = {
-    async send(game: any) {
-      if (game.pending) {
-        pubsub.publish('PENDING_UPDATED', { pending: game })
-      } else {
-        pubsub.publish('ACTIVE_UPDATED', { active: toGraphQLGame(game) })
-      }
-    }
+    async sendPendingGames(games: CreateGameDTO[]) {
+      pubsub.publish('PENDING_GAMES', { games })
+    },
   }
   const api = create_api(broadcaster, store)
 

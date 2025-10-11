@@ -1,62 +1,19 @@
-type Card {
-  type: String!
-  color: String
-  number: Int
+type ReturnGameDTO {
+  name: String!
 }
 
-type PlayerHand {
-  playerName: String!
-  playerCards: [Card!]!
-  score: Int!
+input CreateGameDTO {
+  name: String!
 }
-
-type DiscardPile {
-  pile: [Card!]!
-}
-
-type Deck {
-  cards: [Card!]!
-}
-
-type Round {
-  playerHands: [PlayerHand!]!
-  currentPlayer: PlayerHand
-  discardPile: DiscardPile!
-  deck: Deck!
-  isFinished: Boolean!
-}
-
-type Game {
-  id: String!
-  rounds: [Round!]!
-  currentRound: Round
-  isGameFinished: Boolean!
-}
-
-type PendingGame {
-  id: String!
-  creator: String!
-  number_of_players: Int!
-  players: [String!]!
-}
-
-union GameOrPending = Game | PendingGame
 
 type Query {
-  games: [Game!]!
-  game(id: String!): Game
-  pending_games: [PendingGame!]!
-  pending_game(id: String!): PendingGame
+  get_games: [ReturnGameDTO!]!
 }
 
 type Mutation {
-  new_game(creator: String!, number_of_players: Int!): GameOrPending!
-  join(id: String!, player: String!): GameOrPending!
-  draw_card(id: String!, player: String!): Game!
-  play_card(id: String!, player: String!, cardIndex: Int!): Game!
+  create_game(game: CreateGameDTO) : ReturnGameDTO
 }
 
 type Subscription {
-  game_updated(id: String!): Game
-  pending_updated: PendingGame
+  pending_games_updated: CreateGameDTO[],
 }

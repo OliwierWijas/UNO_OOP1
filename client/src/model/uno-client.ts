@@ -10,8 +10,7 @@ import { discardPile as createDiscardPile } from "domain/src/model/discardPile";
 import type { Card } from "domain/src/model/card";
 import type { Type } from "domain/src/model/types";
 
-// Define indexed types similar to your teacher's pattern
-type Indexed<G, pending extends boolean> = Readonly<G & {id: string, pending: pending}>
+type Indexed<T, pending extends boolean> = Readonly<T & {id: string, pending: pending}>
 
 // Define your domain types for the client
 export type IndexedGame = Indexed<Game, false>
@@ -37,7 +36,7 @@ type GraphQLPendingGame = {
 }
 
 // Conversion functions
-export function from_graphql_game({ id, rounds, currentRound, isGameFinished }: GraphQLGame): IndexedGame {
+/*export function from_graphql_game({ id, rounds, currentRound, isGameFinished }: GraphQLGame): IndexedGame {
   // Convert GraphQL game to client domain game
   // You'll need to reconstruct the game state from GraphQL data
   const playerHands = currentRound?.playerHands?.map((ph: any) =>
@@ -58,7 +57,7 @@ export function from_graphql_game({ id, rounds, currentRound, isGameFinished }: 
   };
 
   return indexedGame;
-}
+}*/
 
 const wsLink = new GraphQLWsLink(createClient({
   url: 'ws://localhost:4000/graphql',
@@ -95,8 +94,23 @@ async function mutate(mutation: DocumentNode, variables?: Object): Promise<any> 
   return result.data
 }
 
+export async function create_game(name: string): Promise<Game> {
+  const response = await mutate(gql`
+    mutation create_game($name: String!) {
+      create_game(game: { name: $name }) {
+        name
+      }
+    }
+  `, { name });
+
+  const result = response.create_game;
+
+  return { name: result.name } as Game;
+}
+
+
 // Subscriptions
-export async function onGameUpdated(subscriber: (game: IndexedGame) => any) {
+export async function onGameCreated(subscriber: (games: Game[]) => any) {
   const gameSubscriptionQuery = gql`subscription GameSubscription {
     game_updated {
       id
@@ -108,8 +122,8 @@ export async function onGameUpdated(subscriber: (game: IndexedGame) => any) {
   const gameObservable = apolloClient.subscribe({ query: gameSubscriptionQuery })
   gameObservable.subscribe({
     next({data}) {
-      const game: IndexedGame = from_graphql_game(data.game_updated)
-      subscriber(game)
+      const games: Game[] = data.games
+      subscriber(games)
     },
     error(err: any) {
       console.error(err)
@@ -117,6 +131,34 @@ export async function onGameUpdated(subscriber: (game: IndexedGame) => any) {
   })
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 export async function onPendingUpdated(subscriber: (pending: IndexedPendingGame) => any) {
   const pendingSubscriptionQuery = gql`subscription PendingSubscription {
     pending_updated {
@@ -195,32 +237,7 @@ export async function pending_game(id: string): Promise<IndexedPendingGame | und
 }
 
 // Mutations
-export async function new_game(creator: string, number_of_players: number): Promise<IndexedGame | IndexedPendingGame> {
-  const response = await mutate(gql`
-    mutation NewGame($creator: String!, $number_of_players: Int!) {
-      new_game(creator: $creator, number_of_players: $number_of_players) {
-        ... on PendingGame {
-          id
-          creator
-          number_of_players
-          players
-        }
-        ... on Game {
-          id
-          rounds
-          currentRound
-          isGameFinished
-        }
-      }
-    }`, { creator, number_of_players })
 
-  const result = response.new_game;
-  if (result.pending) {
-    return { ...result, pending: true };
-  } else {
-    return from_graphql_game(result);
-  }
-}
 
 export async function join(id: string, player: string): Promise<IndexedGame | IndexedPendingGame> {
   const response = await mutate(gql`
@@ -274,3 +291,4 @@ export async function play_card(id: string, player: string, cardIndex: number): 
     }`, { id, player, cardIndex })
   return from_graphql_game(response.play_card)
 }
+*/

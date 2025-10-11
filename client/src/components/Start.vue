@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
+import * as api from "../model/uno-client"
 
 const router = useRouter();
 const playerName = ref("");
 
 const canStart = computed(() => playerName.value.trim().length > 0);
 
-function startGame() {
+async function startGame() {
   if (!canStart.value) return;
-  router.push({ name: "Game", query: { name: playerName.value } });
+  let game = await api.create_game(playerName.value);
+  console.log(game)
+  //router.push({ name: "Game", query: { name: playerName.value } });
 }
 </script>
 
