@@ -4,7 +4,7 @@ import { ServerModel } from "./servermodel"
 import type { Game } from "domain/src/model/Game"
 
 export interface Broadcaster {
-  //sendPendingGames: (message: CreateGameDTO[]) => Promise<void>,
+  sendPendingGames: (message: CreateGameDTO[]) => Promise<void>,
 }
 
 export type API = {
@@ -36,7 +36,7 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
   }
   
   async function broadcastGames(games: CreateGameDTO[]): Promise<void> {
-    //broadcaster.sendPendingGames(games)
+    broadcaster.sendPendingGames(games)
   }
 
   return {

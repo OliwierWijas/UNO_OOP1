@@ -15,5 +15,5 @@ type Mutation {
 }
 
 type Subscription {
-  pending_games_updated: CreateGameDTO[],
+  pending_games_updated: [ReturnGameDTO],
 }
