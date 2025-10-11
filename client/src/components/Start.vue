@@ -1,16 +1,31 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
+import * as api from "../model/uno-client"
+import { onMounted } from "vue";
+import { usePendingGamesStore } from "@/stores/PendingGamesStore";
+
+const pendingGamesStore = usePendingGamesStore()
+const my_pending_games = computed(() => pendingGamesStore.games)
 
 const router = useRouter();
 const playerName = ref("");
 
 const canStart = computed(() => playerName.value.trim().length > 0);
 
-function startGame() {
+async function startGame() {
   if (!canStart.value) return;
-  router.push({ name: "Game", query: { name: playerName.value } });
+  await api.create_game(playerName.value);
+  //router.push({ name: "Game", query: { name: playerName.value } });
 }
+
+  function liveUpdateGames() {
+    api.onPendingGamesUpdated(pendingGamesStore.upsert);
+  }
+  
+  onMounted(async () => {
+    liveUpdateGames();
+  })
 </script>
 
 <template>
@@ -42,7 +57,7 @@ function startGame() {
   position: fixed;
   left: 0;
   top: 0;
-  height: 100vh; 
+  height: 100vh;
   width : 100vw;
   padding: 24px;
   display: flex;
@@ -54,7 +69,7 @@ function startGame() {
 }
 
 .title {
-  animation: none !important;  
+  animation: none !important;
   font-family: 'Luckiest Guy', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   font-size: clamp(56px, 9vw, 88px);
   color: #fff;
@@ -63,13 +78,13 @@ function startGame() {
   text-shadow:
     0 6px 16px rgba(0, 0, 0, 0.35),
     0 2px 0 rgba(0,0,0,0.25);
-  display: inline-block;                
-  transition: transform 180ms ease;     
+  display: inline-block;
+  transition: transform 180ms ease;
   will-change: transform;
 }
 
 .title:hover {
-  transform: scale(1.08);               
+  transform: scale(1.08);
 }
 
 .name-input {
@@ -98,7 +113,7 @@ function startGame() {
   transform: translateY(-1px);
   box-shadow:
     0 12px 22px rgba(0, 0, 0, 0.28),
-    0 0 0 4px rgba(253, 224, 71, 0.55); 
+    0 0 0 4px rgba(253, 224, 71, 0.55);
 }
 
 .start-btn {
@@ -118,7 +133,7 @@ function startGame() {
 
 .start-btn:hover {
   transform: scale(1.06);
-  color:  #dc2626;   
+  color:  #dc2626;
   box-shadow: 0 16px 28px rgba(0, 0, 0, 0.32);
   filter: brightness(1.02);
 }

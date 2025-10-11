@@ -1,5 +1,5 @@
-import type { Card } from "@/model/card"
-import type { Color, Digit, Type } from "@/model/types"
+import type { Card } from "../model/card"
+import type { Color, Digit, Type } from "../model/types"
 
 
 export class DeckFactory {
