@@ -19,8 +19,8 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
   async function create_game(game: CreateGameDTO) {
     const newGame = await server.create_game(game);
     
-    var games = await server.get_games()
-    games.process(broadcastGames)
+    const pendingGames = await server.get_pending_games()
+    pendingGames.process(broadcastGames)
     
     return newGame
   }

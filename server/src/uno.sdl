@@ -8,6 +8,7 @@ input CreateGameDTO {
 
 type Query {
   get_games: [ReturnGameDTO!]!
+  get_pending_games: [ReturnGameDTO!]!
 }
 
 type Mutation {
@@ -15,5 +16,5 @@ type Mutation {
 }
 
 type Subscription {
-  pending_games_updated: [ReturnGameDTO],
+  pending_games_updated: [ReturnGameDTO!]!,
 }

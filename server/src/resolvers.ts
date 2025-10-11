@@ -31,7 +31,8 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
 
     Subscription: {
       pending_games_updated: {
-        subscribe: () => pubsub.asyncIterator(['PENDING_GAMES'])
+        subscribe: () => pubsub.asyncIterableIterator(['PENDING_GAMES']),
+        resolve: (payload: any) => payload.games 
       }
     }
   }

@@ -15,14 +15,12 @@ const canStart = computed(() => playerName.value.trim().length > 0);
 
 async function startGame() {
   if (!canStart.value) return;
-  let game = await api.create_game(playerName.value);
-  console.log(game)
+  await api.create_game(playerName.value);
   //router.push({ name: "Game", query: { name: playerName.value } });
 }
 
   function liveUpdateGames() {
     api.onPendingGamesUpdated(pendingGamesStore.upsert);
-    console.log(my_pending_games)
   }
   
   onMounted(async () => {

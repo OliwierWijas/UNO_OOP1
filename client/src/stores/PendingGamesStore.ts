@@ -7,8 +7,8 @@ export const usePendingGamesStore = defineStore('pending games', () => {
   const games = computed((): Reactive<Readonly<SimpleGameDTO[]>> => gameList)
 
   const upsert = (games: SimpleGameDTO[]) => {
+    gameList.length = 0
     gameList.push(...games)
-    console.log(games)
   }
 
   return { games, upsert }
