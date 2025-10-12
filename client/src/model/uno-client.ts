@@ -71,9 +71,6 @@ export async function get_game_player_hands(gameName: string): Promise<PlayerHan
   `, {
     gameName: { name: gameName }
   });
-
-  console.log(response)
-
   const result = response.get_game_player_hands;
   return result as PlayerHand[];
 }

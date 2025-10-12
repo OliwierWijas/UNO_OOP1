@@ -58,9 +58,7 @@ async function loadInitialGames() {
 
 
 function liveUpdateGames() {
-  console.log('Setting up pending games subscription...');
   api.onPendingGamesUpdated((games) => {
-    console.log('Received games update:', games);
     pendingGamesStore.upsert(games);
   });
 }

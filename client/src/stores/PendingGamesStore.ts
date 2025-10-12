@@ -9,7 +9,6 @@ export const usePendingGamesStore = defineStore('pending games', () => {
   const upsert = (games: SimpleGameDTO[]) => {
     gameList.length = 0
     gameList.push(...games)
-    console.log(gameList)
   }
 
   return { games, upsert }

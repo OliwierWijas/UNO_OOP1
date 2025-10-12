@@ -47,10 +47,7 @@ function setupPlayerHandsSubscription() {
 }
 
 function setupGameStartedSubscription() {
-  console.log('Setting up game started subscription for game:', gameName);
-
   api.onGameStarted(gameName, (game) => {
-    console.log('Game started!', game);
     gameStarted.value = true;
     ongoingGamesStore.addGame(game);
     initializeGameComponents();
@@ -86,7 +83,6 @@ async function startGame() {
     isLoading.value = false;
   }
 }
- ///po co?
 function initializeGameComponents() {
   currentRound.nextPlayer();
 }
