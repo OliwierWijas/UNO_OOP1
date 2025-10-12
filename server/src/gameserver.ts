@@ -14,6 +14,8 @@ import { create_api } from './api'
 import { create_resolvers } from './resolvers'
 import { readFileSync } from 'fs'
 import { CreateGameDTO } from './servermodel'
+import type { PlayerHand } from 'domain/src/model/playerHand'
+import type { Game } from 'domain/src/model/game'
 
 const typeDefs = readFileSync('./src/uno.sdl', 'utf8')
 
@@ -24,6 +26,12 @@ async function startServer() {
     async sendPendingGames(games: CreateGameDTO[]) {
       pubsub.publish('PENDING_GAMES', { games })
     },
+    async sendPlayerHands(gameName: string, playerHands: PlayerHand[]) {
+      await pubsub.publish(`GAME_PLAYER_HANDS_${gameName}`, { playerHands })
+    },
+    async sendGameStarted(gameName: string, game: Game) {
+      await pubsub.publish(`GAME_STARTED_${gameName}`, { game });
+    }
   }
   const api = create_api(broadcaster, store)
 

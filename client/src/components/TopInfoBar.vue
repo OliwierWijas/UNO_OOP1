@@ -32,14 +32,14 @@ const props = defineProps({
 
 <style scoped>
 .topbar-container {
-  background-color: #272626ff;
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column; /* stack round + players */
   align-items: center;    /* center everything horizontally */
   padding: 10px;
   border-radius: 0 0 30px 30px;
   min-width : 50vw;
-  width: fit-content;  
+  width: fit-content;
 }
 
 .round {
@@ -52,7 +52,7 @@ const props = defineProps({
 
 .players-row {
   display: flex;
-  gap: 30px; 
+  gap: 30px;
   justify-content: center;
 }
 

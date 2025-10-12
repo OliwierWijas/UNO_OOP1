@@ -1,12 +1,15 @@
-import { GameStore, CreateGameDTO, StoreError } from "./servermodel"
+import { GameStore, CreateGameDTO, StoreError, CreatePlayerHandDTO, GamesNameDTO } from "./servermodel"
 import { game, type Game } from "domain/src/model/Game"
 import { ServerResponse } from "./response"
+import { playerHand, type PlayerHand } from "domain/src/model/playerHand"
+import {deck, type Deck} from "domain/src/model/deck"
+import { discardPile, type DiscardPile } from "domain/src/model/discardPile"
 
 const not_found = (key: any): StoreError => ({ type: 'Not Found', key })
 
+const game_full = (key: any): StoreError => ({ type: 'Game has too much Players', key })
 export class MemoryStore implements GameStore {
   private _games: Game[]
-  private next_id: number = 1
 
   constructor(...games: Game[]) {
     this._games = [...games]
@@ -26,10 +29,54 @@ export class MemoryStore implements GameStore {
     return ServerResponse.ok(pendingGames);
   }
 
+  async get_initial_game_player_hands(gamesName : GamesNameDTO) {
+    const targetGame = this._games.find(g => g.name === gamesName.name);
+
+    if (!targetGame) {
+      return ServerResponse.error(not_found(gamesName.name));
+    }
+    return ServerResponse.ok(targetGame.playerHands);
+  }
+
   async create_game(dto: CreateGameDTO) : Promise<ServerResponse<Game, StoreError>> {
     const newGame = game(dto.name)
-
     this._games.push(newGame)
     return ServerResponse.ok(newGame)
+  }
+
+  async create_player_hand(dto : CreatePlayerHandDTO): Promise<ServerResponse<PlayerHand, StoreError>> {
+    const targetGame = this._games.find(g => g.name === dto.gameName);
+    if (!targetGame) {
+      return ServerResponse.error(not_found(dto.gameName));
+    }
+    if(targetGame.playerHands.length >=4) {
+      return ServerResponse.error(game_full(dto.gameName));
+    }
+    const newPlayerHand = playerHand(dto.playerName);
+    targetGame.joinGame(newPlayerHand);
+    return ServerResponse.ok(newPlayerHand);
+  }
+
+  async get_game_player_hands(gamesName : GamesNameDTO): Promise<ServerResponse<PlayerHand[], StoreError>> {
+    const targetGame = this._games.find(g => g.name === gamesName.name);
+
+    if (!targetGame) {
+      return ServerResponse.error(not_found(gamesName.name));
+    }
+    return ServerResponse.ok(targetGame.playerHands);
+  }
+
+  async start_game(gamesName : GamesNameDTO) : Promise<ServerResponse<Game, StoreError>>{
+     const targetGame = this._games.find(g => g.name === gamesName.name);
+    if (!targetGame) {
+      return ServerResponse.error(not_found(gamesName.name));
+    }
+
+    const newDeck = deck();
+    const newDiscardPile = discardPile()
+
+
+    targetGame.startGame(newDeck, newDiscardPile);
+    return ServerResponse.ok(targetGame);
   }
 }
