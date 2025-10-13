@@ -14,7 +14,6 @@ import { deck as createDeck } from 'domain/src/model/deck';
 import { discardPile as createDiscardPile } from 'domain/src/model/discardPile';
 import * as api from "../model/uno-client";
 import { usePlayerHandsStore } from '@/stores/PlayerHandsStore';
-import { usePendingGamesStore } from '@/stores/PendingGamesStore';
 import { useOngoingGamesStore } from "@/stores/OngoingGamesStore"
 
 const route = useRoute();
@@ -34,6 +33,7 @@ const currentRound = reactive(createRound([playerHand, ...opponents], gameDeck))
 
 const isLoading = ref(false);
 const gameStarted = ref(false);
+let hasTakenInitialCards = false
 
 const canStartGame = computed(() => {
   return playerHandsStore.playerHands.length > 1 && !gameStarted.value;
@@ -83,7 +83,14 @@ async function startGame() {
     isLoading.value = false;
   }
 }
-function initializeGameComponents() {
+
+async function initializeGameComponents() {
+  if (!hasTakenInitialCards) {
+    const cards = await api.take_cards(gameName, 7)
+    playerHand.takeCards(cards)
+    hasTakenInitialCards = true
+  }
+
   currentRound.nextPlayer();
 }
 

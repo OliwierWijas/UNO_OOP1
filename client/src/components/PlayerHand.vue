@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type PropType, ref, defineProps, defineEmits } from 'vue'
+import { type PropType, defineProps, defineEmits, computed } from 'vue'
 import type { PlayerHand } from "domain/src/model/playerHand";
 import UnoCard from "./Card.vue";
 import type { Card } from "domain/src/model/card";
@@ -12,7 +12,7 @@ const props = defineProps({
   }
 });
 
-const currentHand = ref(props.playerHand);
+const currentHand = computed(() => props.playerHand);
 
 const emit = defineEmits<{
   (e: 'card-played', payload: { cardIndex: number; card: Card<Type> }): void;
@@ -42,7 +42,7 @@ const cardStyle = (index : number) => {
   <div class="player-hand">
     <div class="hand-cards">
       <UnoCard
-        v-for="(card, index) in playerHand.playerCards"
+        v-for="(card, index) in currentHand.playerCards"
         :key="index"
         :card="card"
         class="uno-card"

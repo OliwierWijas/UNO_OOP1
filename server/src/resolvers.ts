@@ -57,7 +57,6 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
       },
       async take_cards(_: any, params: { takeCardsDTO: TakeCardsDTO }) {
         const res = await api.take_cards(params.takeCardsDTO.gameName, params.takeCardsDTO.numberOfCards);
-        console.log(res)
         return res.resolve({
           onSuccess: async (cards) =>
             cards.map(card => {
