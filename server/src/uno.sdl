@@ -1,20 +1,45 @@
+type Game {
+  name: String!
+  state: String!
+  playerHands: [PlayerHand]
+}
+
+type PlayerHand {
+  playerName: String!
+  cards: [String]
+  score: Int
+}
+
 type ReturnGameDTO {
   name: String!
 }
 
+input CreatePlayerHandDTO{
+  playerName : String!
+  gameName : String!
+}
 input CreateGameDTO {
   name: String!
+}
+
+input GameNameDTO {
+  name : String!
 }
 
 type Query {
   get_games: [ReturnGameDTO!]!
   get_pending_games: [ReturnGameDTO!]!
+  get_game_player_hands(gameName: GameNameDTO!): [PlayerHand!]!
 }
 
 type Mutation {
   create_game(game: CreateGameDTO) : ReturnGameDTO
+  create_player_hand(playerHand: CreatePlayerHandDTO!): PlayerHand!
+  start_game(gameName: GameNameDTO!): Game!
 }
 
 type Subscription {
   pending_games_updated: [ReturnGameDTO!]!,
+  game_player_hands_updated(gameName: String!): [PlayerHand!]!
+  game_started(gameName: String!): Game!
 }

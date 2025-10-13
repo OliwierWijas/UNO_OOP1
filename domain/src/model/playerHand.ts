@@ -13,8 +13,8 @@ export interface PlayerHand {
   resetCards(): void;
 }
 
-export function playerHand(name: string, initialCards: Card<Type>[]): PlayerHand {
-  let playerCards : Card<Type>[] = [...initialCards];
+export function playerHand(name: string): PlayerHand {
+  let playerCards: Card<Type>[] = [];
   let score = 0;
 
   return {

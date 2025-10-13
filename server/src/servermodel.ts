@@ -1,8 +1,18 @@
 import { ServerResponse } from "./response"
 import type { Game } from "domain/src/model/Game"
+import { playerHand, type PlayerHand } from "domain/src/model/playerHand"
 
 export type CreateGameDTO = {
   name: string
+}
+
+export type GamesNameDTO = {
+  name : string;
+}
+
+export type CreatePlayerHandDTO = {
+  playerName : string,
+  gameName : string
 }
 
 export type PendingGame = {
@@ -13,7 +23,7 @@ export type PendingGame = {
   readonly pending: true
 }
 
-export type StoreError = { type: 'Not Found', key: any } | { type: 'DB Error', error: any }
+export type StoreError = { type: 'Not Found', key: any } | { type: 'DB Error', error: any } | { type: 'Game has too much Players', key: any }
 export type ServerError = { type: 'Forbidden' } | StoreError
 
 const Forbidden: ServerError = { type: 'Forbidden' } as const
@@ -22,6 +32,9 @@ export interface GameStore {
   create_game(game: CreateGameDTO): Promise<ServerResponse<Game, StoreError>>
   get_pending_games(): Promise<ServerResponse<CreateGameDTO[], StoreError>>
   get_games(): Promise<ServerResponse<Game[], StoreError>>
+  create_player_hand(playerHand : CreatePlayerHandDTO): Promise<ServerResponse<PlayerHand, StoreError>>
+  get_game_player_hands(gamesName : GamesNameDTO) :  Promise<ServerResponse<PlayerHand[], StoreError>>
+  start_game(gamesName: GamesNameDTO): Promise<ServerResponse<Game, StoreError>>
 }
 
 export class ServerModel {
@@ -44,4 +57,19 @@ export class ServerModel {
   async get_games() {
     return this.store.get_games()
   }
+
+  async create_player_hand(dto : CreatePlayerHandDTO): Promise<ServerResponse<PlayerHand, StoreError>>{
+    const result = await this.store.create_player_hand(dto);
+    return result;
+  }
+
+   async get_games_player_hands(dto : GamesNameDTO) {
+    var playerHands = this.store.get_game_player_hands(dto)
+    return playerHands
+  }
+
+  async start_game(dto: GamesNameDTO): Promise<ServerResponse<Game, StoreError>> {
+  const result = await this.store.start_game(dto);
+  return result;
+}
 }

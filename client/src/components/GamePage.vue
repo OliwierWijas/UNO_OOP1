@@ -8,90 +8,195 @@ import Deck from './Deck.vue';
 import DiscardPile from './DiscardPile.vue';
 import TopInfoBar from './TopInfoBar.vue';
 import type { Type } from 'domain/src/model/types';
-import { reactive } from 'vue';
+import { reactive, onMounted, computed, ref } from 'vue';
 import { round as createRound } from 'domain/src/model/round';
 import { deck as createDeck } from 'domain/src/model/deck';
 import { discardPile as createDiscardPile } from 'domain/src/model/discardPile';
+import * as api from "../model/uno-client";
+import { usePlayerHandsStore } from '@/stores/PlayerHandsStore';
+import { usePendingGamesStore } from '@/stores/PendingGamesStore';
+import { useOngoingGamesStore } from "@/stores/OngoingGamesStore"
 
 const route = useRoute();
+const playerHandsStore = usePlayerHandsStore();
+const ongoingGamesStore = useOngoingGamesStore();
+
+const gameName = (route.query.gameName as string) || 'DefaultGame';
+const playerName = (route.query.playerName as string) || 'Player';
 
 const gameDeck = createDeck();
 gameDeck.shuffle();
 
 const discardPile = reactive(createDiscardPile());
-
-const playerName = (route.query.name as string) || 'Player';
-const playerHand = reactive(createPlayerHand(playerName, []));
-
-// Example setup: you + 3 AI opponents
-const opponents = [
-  reactive(createPlayerHand('Alice', [])),
-  reactive(createPlayerHand('Bob', [])),
-  reactive(createPlayerHand('Charlie', [])),
-  reactive(createPlayerHand('Diana', [])), 
-];
-
+const playerHand = reactive(createPlayerHand(playerName));
+const opponents = reactive<ReturnType<typeof createPlayerHand>[]>([]);
 const currentRound = reactive(createRound([playerHand, ...opponents], gameDeck, discardPile));
 
-// temporary for testing
-currentRound.nextPlayer();
+const isLoading = ref(false);
+const gameStarted = ref(false);
+
+const canStartGame = computed(() => {
+  return playerHandsStore.playerHands.length > 1 && !gameStarted.value;
+});
+
+function setupPlayerHandsSubscription() {
+  api.onGamePlayerHandsUpdated(gameName, (playerHands) => {
+    playerHandsStore.update(playerHands);
+    updatePlayerHands(playerHands);
+  });
+}
+
+function setupGameStartedSubscription() {
+  api.onGameStarted(gameName, (game) => {
+    gameStarted.value = true;
+    ongoingGamesStore.addGame(game);
+    initializeGameComponents();
+  });
+}
+
+function updatePlayerHands(playerHands: any[]) {
+  opponents.length = 0;
+  playerHands.forEach(hand => {
+    if (hand.playerName === playerName) {
+      Object.assign(playerHand, hand);
+    } else {
+      const opponent = createPlayerHand(hand.playerName);
+      Object.assign(opponent, hand);
+      opponents.push(opponent);
+    }
+  });
+  const allPlayers = [playerHand, ...opponents];
+  Object.assign(currentRound, createRound(allPlayers, gameDeck, discardPile));
+}
+
+async function startGame() {
+  if (!canStartGame.value || isLoading.value) return;
+
+  try {
+    isLoading.value = true;
+    await api.start_game(gameName);
+
+  } catch (error) {
+    console.error('Error starting game:', error);
+    alert('Failed to start game. Please try again.');
+  } finally {
+    isLoading.value = false;
+  }
+}
+function initializeGameComponents() {
+  currentRound.nextPlayer();
+}
 
 function handleCardDrawn(card: Card<Type>) {
+  if (!gameStarted.value) return;
   playerHand.takeCards([card]);
 }
 
 function handleCardPlayed(payload: { cardIndex: number; card: Card<Type> }) {
+  if (!gameStarted.value) return;
+
   if (!currentRound.putCard(payload.card)) {
     currentRound.currentPlayer?.putCardBack(payload.card, payload.cardIndex);
   }
 }
+
+async function loadInitialPlayerHands() {
+  try {
+    const initialPlayerHands = await api.get_game_player_hands(gameName);
+    updatePlayerHands(initialPlayerHands);
+    playerHandsStore.update(initialPlayerHands);
+
+    const ongoingGame = ongoingGamesStore.getGame(gameName);
+    if (ongoingGame) {
+      gameStarted.value = true;
+      initializeGameComponents();
+    }
+  } catch (error) {
+    console.error('Error fetching initial player hands:', error);
+  }
+}
+
+onMounted(async () => {
+  await loadInitialPlayerHands();
+  setupPlayerHandsSubscription();
+  setupGameStartedSubscription();
+});
 </script>
 
 <template>
   <div class="game-container">
     <TopInfoBar :players="[playerHand, ...opponents]" />
 
-    <OpponentHand
-      v-if="opponents.length === 1"
-      :opponent="opponents[0]"
-      class="opponent-top"
-    />
+    <!-- Start Game Button (shown before game starts) -->
+    <div v-if="!gameStarted" class="start-game-section">
+      <div class="waiting-message">
+        <h2>Waiting to Start Game: {{ gameName }}</h2>
+        <ul class="player-list">
+          <li v-for="hand in playerHandsStore.playerHands" :key="hand.playerName">
+            {{ hand.playerName }}
+          </li>
+        </ul>
 
-    <template v-else-if="opponents.length === 2">
-      <OpponentHand :opponent="opponents[0]" class="opponent-left" />
-      <OpponentHand :opponent="opponents[1]" class="opponent-right" />
-    </template>
-
-    <template v-else-if="opponents.length === 3">
-      <OpponentHand :opponent="opponents[0]" class="opponent-left" />
-      <OpponentHand :opponent="opponents[1]" class="opponent-right" />
-      <OpponentHand :opponent="opponents[2]" class="opponent-top" />
-    </template>
-
-    <template v-else-if="opponents.length === 4">
-      <div class="opponent-left column">
-        <OpponentHand :opponent="opponents[0]" />
-        <OpponentHand :opponent="opponents[1]" />
+        <button
+          v-if="canStartGame"
+          @click="startGame"
+          :disabled="!canStartGame || isLoading"
+          class="start-game-button"
+          :class="{ 'disabled': !canStartGame || isLoading }"
+        >
+          {{ isLoading ? 'Starting...' : 'Start Game' }}
+        </button>
+        <div v-if="!canStartGame" class="warning-message">
+          Need at least 2 players to start the game
+        </div>
       </div>
-      <div class="opponent-right column">
-        <OpponentHand :opponent="opponents[2]" />
-        <OpponentHand :opponent="opponents[3]" />
-      </div>
-    </template>
-
-    <div class="center-area">
-      <DiscardPile :discardPile="discardPile" />
-      <Deck @card-drawn="handleCardDrawn" :deck="gameDeck" />
     </div>
+    <template v-else>
+      <template v-if="opponents.length > 0">
+        <OpponentHand
+          v-if="opponents.length === 1"
+          :opponent="opponents[0]"
+          class="opponent-left"
+        />
 
-    <PlayerHand :playerHand="playerHand" @card-played="handleCardPlayed" />
+        <template v-else-if="opponents.length === 2">
+          <OpponentHand :opponent="opponents[0]" class="opponent-left" />
+          <OpponentHand :opponent="opponents[1]" class="opponent-right" />
+        </template>
+
+        <template v-else-if="opponents.length === 3">
+          <OpponentHand :opponent="opponents[0]" class="opponent-left" />
+          <OpponentHand :opponent="opponents[1]" class="opponent-right" />
+          <OpponentHand :opponent="opponents[2]" class="opponent-top" />
+        </template>
+
+        <template v-else-if="opponents.length >= 4">
+          <div class="opponent-left column">
+            <OpponentHand :opponent="opponents[0]" />
+            <OpponentHand :opponent="opponents[1]" />
+          </div>
+          <div class="opponent-right column">
+            <OpponentHand :opponent="opponents[2]" />
+            <OpponentHand :opponent="opponents[3]" />
+          </div>
+        </template>
+      </template>
+
+      <div class="center-area">
+        <DiscardPile :discardPile="discardPile" />
+        <Deck @card-drawn="handleCardDrawn" :deck="gameDeck" />
+      </div>
+
+      <PlayerHand :playerHand="playerHand" @card-played="handleCardPlayed" />
+    </template>
   </div>
 </template>
 
 <style scoped>
 .game-container {
+  font-family: 'Trebuchet MS', sans-serif;
   position: fixed;
-  inset: 0; 
+  inset: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -100,17 +205,81 @@ function handleCardPlayed(payload: { cardIndex: number; card: Card<Type> }) {
   background-size: cover;
 }
 
+.start-game-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: white;
+  text-align: center;
+}
+
+.waiting-message {
+  background: rgba(0, 0, 0, 0.7);
+  padding: 2rem;
+  border-radius: 1rem;
+  backdrop-filter: blur(10px);
+}
+
+.player-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.player-list li {
+  padding: 0.5rem;
+  margin: 0.25rem 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+}
+
+.start-game-button {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: all 0.3s ease;
+}
+
+.start-game-button:hover:not(.disabled) {
+  background: #45a049;
+  transform: scale(1.05);
+}
+
+.start-game-button.disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.waiting-for-host {
+  margin-top: 1rem;
+  font-style: italic;
+}
+
+.warning-message {
+  color: #ff6b6b;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
 .center-area {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 20px;
-  margin-top: 5vh;  
+  margin-top: 5vh;
 }
 
 .opponent-top {
   position: absolute;
-  top: 10%;
+  top: 15%;
   left: 50%;
   transform: translateX(-50%);
 }

@@ -15,7 +15,6 @@ export function discardPile(): DiscardPile {
 
     addCard(card: Card<Type>) {
       this.pile.push(card);
-      console.log(card)
     },
 
     getTopCard() {
