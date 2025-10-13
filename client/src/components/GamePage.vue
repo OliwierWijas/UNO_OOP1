@@ -10,7 +10,6 @@ import TopInfoBar from './TopInfoBar.vue';
 import type { Type } from 'domain/src/model/types';
 import { reactive, onMounted, computed, ref } from 'vue';
 import { round as createRound } from 'domain/src/model/round';
-import { deck as createDeck } from 'domain/src/model/deck';
 import { discardPile as createDiscardPile } from 'domain/src/model/discardPile';
 import * as api from "../model/uno-client";
 import { usePlayerHandsStore } from '@/stores/PlayerHandsStore';
@@ -23,13 +22,10 @@ const ongoingGamesStore = useOngoingGamesStore();
 const gameName = (route.query.gameName as string) || 'DefaultGame';
 const playerName = (route.query.playerName as string) || 'Player';
 
-const gameDeck = createDeck();
-gameDeck.shuffle();
-
 const discardPile = reactive(createDiscardPile());
 const playerHand = reactive(createPlayerHand(playerName));
 const opponents = reactive<ReturnType<typeof createPlayerHand>[]>([]);
-const currentRound = reactive(createRound([playerHand, ...opponents], gameDeck));
+const currentRound = reactive(createRound([playerHand, ...opponents]));
 
 const isLoading = ref(false);
 const gameStarted = ref(false);
@@ -66,7 +62,7 @@ function updatePlayerHands(playerHands: any[]) {
     }
   });
   const allPlayers = [playerHand, ...opponents];
-  Object.assign(currentRound, createRound(allPlayers, gameDeck));
+  Object.assign(currentRound, createRound(allPlayers));
 }
 
 async function startGame() {
@@ -86,7 +82,7 @@ async function startGame() {
 
 async function initializeGameComponents() {
   if (!hasTakenInitialCards) {
-    const cards = await api.take_cards(gameName, 7)
+    const cards = await api.take_cards(gameName, playerHand.playerName, 7)
     playerHand.takeCards(cards)
     hasTakenInitialCards = true
   }
@@ -96,7 +92,10 @@ async function initializeGameComponents() {
 
 function handleCardDrawn(card: Card<Type>) {
   if (!gameStarted.value) return;
-  playerHand.takeCards([card]);
+
+  if (card) {
+    playerHand.takeCards([card]);
+  }
 }
 
 function handleCardPlayed(payload: { cardIndex: number; card: Card<Type> }) {
@@ -191,7 +190,7 @@ onMounted(async () => {
 
       <div class="center-area">
         <DiscardPile :discardPile="discardPile" />
-        <Deck @card-drawn="handleCardDrawn" :deck="gameDeck" />
+        <Deck @card-drawn="handleCardDrawn" :game-name="gameName" :player-name="playerName"/>
       </div>
 
       <PlayerHand :playerHand="playerHand" @card-played="handleCardPlayed" />

@@ -19,6 +19,7 @@ export type CreatePlayerHandDTO = {
 
 export type TakeCardsDTO = {
   gameName: string,
+  playerName: string,
   numberOfCards: number
 }
 
@@ -42,7 +43,7 @@ export interface GameStore {
   create_player_hand(playerHand : CreatePlayerHandDTO): Promise<ServerResponse<PlayerHand, StoreError>>
   get_game_player_hands(gamesName : GamesNameDTO) :  Promise<ServerResponse<PlayerHand[], StoreError>>
   start_game(gamesName: GamesNameDTO): Promise<ServerResponse<Game, StoreError>>
-  take_cards(gameName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>>
+  take_cards(gameName: string, playerName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>>
 }
 
 export class ServerModel {
@@ -72,7 +73,7 @@ export class ServerModel {
   }
 
    async get_games_player_hands(dto : GamesNameDTO) {
-    var playerHands = this.store.get_game_player_hands(dto)
+    var playerHands = await this.store.get_game_player_hands(dto)
     return playerHands
   }
 
@@ -81,8 +82,8 @@ export class ServerModel {
   return result;
   }
 
-  async take_cards(gameName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>> {
-    const cards = await this.store.take_cards(gameName, number)
+  async take_cards(gameName: string, playerName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>> {
+    const cards = await this.store.take_cards(gameName, playerName, number)
     return cards
   }
 }

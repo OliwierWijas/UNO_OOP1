@@ -7,33 +7,27 @@ import { discardPile, type DiscardPile } from './discardPile'
 
 export interface Round {
   playerHands: PlayerHand[]
-  deck: Deck
+  deck: Deck | null
   currentPlayer: PlayerHand | undefined
   discardPile: DiscardPile
   isFinished: boolean
 
-  distributeCards(): void
   nextPlayer(): void
   putCard(card: Card<Type>): boolean
 }
 
-export function round(hands: PlayerHand[], roundDeck: Deck): Round {
+export function round(hands: PlayerHand[]): Round {
   function findDealer(playerHands: PlayerHand[]): PlayerHand {
     return playerHands[0] ///we might change here later with the actual logic
   }
 
   return {
     playerHands: hands,
-    deck: roundDeck,
+    deck: null,
     currentPlayer: undefined,
     discardPile: discardPile(),
     isFinished: false,
 
-    distributeCards() {
-      this.deck.shuffle()
-      this.playerHands.forEach((p) => p.takeCards(this.deck.drawCards(7)))
-      this.discardPile.addCard(this.deck.drawCards(1)[0])
-    },
     nextPlayer() {
       if (!this.currentPlayer) {
         this.currentPlayer = findDealer(this.playerHands)
@@ -71,12 +65,16 @@ export function round(hands: PlayerHand[], roundDeck: Deck): Round {
 
           case 'DRAW2':
             this.nextPlayer()
-            this.currentPlayer?.takeCards(this.deck.drawCards(2))
+            if (this.deck) {
+              this.currentPlayer?.takeCards(this.deck.drawCards(2))
+            }
             return true
 
           case 'DRAW4':
             this.nextPlayer()
-            this.currentPlayer?.takeCards(this.deck.drawCards(4))
+            if (this.deck) {
+              this.currentPlayer?.takeCards(this.deck.drawCards(4))
+            }
             return true
 
           case 'WILD':

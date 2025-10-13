@@ -35,6 +35,7 @@ input GameNameDTO {
 
 input TakeCardsDTO {
   gameName: String!
+  playerName: String!
   numberOfCards: Int!
 }
 

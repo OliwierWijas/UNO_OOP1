@@ -2,7 +2,7 @@ import { ServerResponse } from "./response"
 import { CreateGameDTO, CreatePlayerHandDTO, GamesNameDTO, GameStore, ServerError } from "./servermodel"
 import { ServerModel } from "./servermodel"
 import type { PlayerHand } from "domain/src/model/playerHand"
-import type { Game } from "domain/src/model/Game"
+import { game, type Game } from "domain/src/model/Game"
 import { Card } from "domain/src/model/card"
 import { Type } from "domain/src/model/types"
 
@@ -19,7 +19,7 @@ export type API = {
   create_player_hand : (dto : CreatePlayerHandDTO)  => Promise<ServerResponse<PlayerHand, ServerError>>
   get_game_player_hands : (gameName: GamesNameDTO) => Promise<ServerResponse<PlayerHand[], ServerError>>
   start_game: (gameName: GamesNameDTO) => Promise<ServerResponse<Game, ServerError>>
-  take_cards: (gameName: string, number: number) => Promise<ServerResponse<Card<Type>[], ServerError>>
+  take_cards: (gameName: string, playerName: string, number: number) => Promise<ServerResponse<Card<Type>[], ServerError>>
 }
 
 export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
@@ -39,6 +39,8 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
   }
 
    const broadcastPlayerHands = async (gameName: string, playerHands: PlayerHand[]): Promise<void> => {
+    console.log("broadcaster")
+    console.log(playerHands)
     await broadcaster.sendPlayerHands(gameName, playerHands)
   }
   
@@ -61,7 +63,7 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
   }
 
   async function get_game_player_hands(gameName : GamesNameDTO){
-    const playerHands = await server.get_games_player_hands(gameName);
+    const playerHands = await server.get_games_player_hands({ name: gameName.name});
     return playerHands
   }
 
@@ -74,8 +76,13 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     return result;
   }
 
-  async function take_cards(gameName: string, number: number) {
-    const cards = await server.take_cards(gameName, number)
+  async function take_cards(gameName: string, playerName: string, number: number) {
+    const cards = await server.take_cards(gameName, playerName, number)
+
+    // update player hands
+    const playerHands = await server.get_games_player_hands({ name: gameName })
+    await playerHands.process(hands => broadcastPlayerHands(gameName, hands))
+
     return cards
   }
 

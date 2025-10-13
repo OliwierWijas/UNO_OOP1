@@ -166,11 +166,12 @@ export async function start_game(gameName: string): Promise<Game> {
   return result as Game;
 }
 
-export async function take_cards(gameName: string, numberOfCards: number): Promise<Card<Type>[]> {
+export async function take_cards(gameName: string, playerName: string, numberOfCards: number): Promise<Card<Type>[]> {
   const response = await mutate(gql`
-    mutation TakeCards($gameName: String!, $numberOfCards: Int!) {
+    mutation TakeCards($gameName: String!, $playerName: String!, $numberOfCards: Int!) {
       take_cards(takeCardsDTO: {
         gameName: $gameName,
+        playerName: $playerName,
         numberOfCards: $numberOfCards
       }) {
         color
@@ -180,6 +181,7 @@ export async function take_cards(gameName: string, numberOfCards: number): Promi
     }
   `, {
     gameName,
+    playerName,
     numberOfCards
   });
 
@@ -187,7 +189,7 @@ export async function take_cards(gameName: string, numberOfCards: number): Promi
     return response.take_cards.map(mapCard);
   }
 
-  throw new Error("Server Error.")
+  throw new Error("Server Error: " + response.error)
 }
 
 

@@ -56,16 +56,19 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
         });
       },
       async take_cards(_: any, params: { takeCardsDTO: TakeCardsDTO }) {
-        const res = await api.take_cards(params.takeCardsDTO.gameName, params.takeCardsDTO.numberOfCards);
+        const res = await api.take_cards(
+          params.takeCardsDTO.gameName,
+          params.takeCardsDTO.playerName,
+          params.takeCardsDTO.numberOfCards
+        );
         return res.resolve({
-          onSuccess: async (cards) =>
-            cards.map(card => {
-              return {
-                color: 'color' in card ? card.color : null,
-                digit: card.type === 'NUMBERED' ? card.number : null,
-                type: card.type
-              };
-            }),
+          onSuccess: async (cards) => {
+            return cards.map(card => ({
+              color: 'color' in card ? card.color : null,
+              digit: card.type === 'NUMBERED' ? card.number : null,
+              type: card.type
+            }));
+          },
           onError: respond_with_error
         });
       },
