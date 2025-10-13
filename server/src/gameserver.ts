@@ -13,7 +13,7 @@ import { MemoryStore } from './memorystore'
 import { create_api } from './api'
 import { create_resolvers } from './resolvers'
 import { readFileSync } from 'fs'
-import { CreateGameDTO } from './servermodel'
+import { CreateGameDTO, PlayerHandSubscription } from './servermodel'
 import type { PlayerHand } from 'domain/src/model/playerHand'
 import type { Game } from 'domain/src/model/game'
 
@@ -26,7 +26,7 @@ async function startServer() {
     async sendPendingGames(games: CreateGameDTO[]) {
       pubsub.publish('PENDING_GAMES', { games })
     },
-    async sendPlayerHands(gameName: string, playerHands: PlayerHand[]) {
+    async sendPlayerHands(gameName: string, playerHands: PlayerHandSubscription[]) {
       await pubsub.publish(`GAME_PLAYER_HANDS_${gameName}`, { playerHands })
     },
     async sendGameStarted(gameName: string, game: Game) {

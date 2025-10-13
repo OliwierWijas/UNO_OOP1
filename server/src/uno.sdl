@@ -10,6 +10,12 @@ type PlayerHand {
   score: Int
 }
 
+type PlayerHandSubscription {
+  playerName: String!
+  numberOfCards: Int
+  score: Int
+}
+
 type ReturnGameDTO {
   name: String!
 }
@@ -54,6 +60,6 @@ type Mutation {
 
 type Subscription {
   pending_games_updated: [ReturnGameDTO!]!,
-  game_player_hands_updated(gameName: String!): [PlayerHand!]!
+  game_player_hands_updated(gameName: String!): [PlayerHandSubscription!]!
   game_started(gameName: String!): Game!
 }

@@ -31,6 +31,12 @@ export type PendingGame = {
   readonly pending: true
 }
 
+export type PlayerHandSubscription = {
+  playerName: string,
+  numberOfCards: number,
+  score: number
+}
+
 export type StoreError = { type: 'Not Found', key: any } | { type: 'DB Error', error: any } | { type: 'Game has too much Players', key: any }
 export type ServerError = { type: 'Forbidden' } | StoreError
 

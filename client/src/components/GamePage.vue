@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { Card } from 'domain/src/model/card';
-import { playerHand as createPlayerHand } from 'domain/src/model/playerHand';
+import { playerHand as createPlayerHand, type PlayerHand } from 'domain/src/model/playerHand';
 import { useRoute } from 'vue-router';
-import PlayerHand from './PlayerHand.vue';
+import PlayerHandComponent from './PlayerHand.vue';
 import OpponentHand from './OpponentHand.vue';
 import Deck from './Deck.vue';
 import DiscardPile from './DiscardPile.vue';
@@ -110,7 +110,7 @@ async function loadInitialPlayerHands() {
   try {
     const initialPlayerHands = await api.get_game_player_hands(gameName);
     updatePlayerHands(initialPlayerHands);
-    playerHandsStore.update(initialPlayerHands);
+    playerHandsStore.update(initialPlayerHands.map(mapPlayerHandToSubscription));
 
     const ongoingGame = ongoingGamesStore.getGame(gameName);
     if (ongoingGame) {
@@ -122,6 +122,14 @@ async function loadInitialPlayerHands() {
   }
 }
 
+function mapPlayerHandToSubscription(hand: PlayerHand): api.PlayerHandSubscription {
+  return {
+    playerName: hand.playerName,
+    numberOfCards: hand.playerCards?.length,
+    score: hand.score
+  };
+}
+
 onMounted(async () => {
   await loadInitialPlayerHands();
   setupPlayerHandsSubscription();
@@ -131,7 +139,7 @@ onMounted(async () => {
 
 <template>
   <div class="game-container">
-    <TopInfoBar :players="[playerHand, ...opponents]" />
+    <TopInfoBar />
 
     <!-- Start Game Button (shown before game starts) -->
     <div v-if="!gameStarted" class="start-game-section">
@@ -193,7 +201,7 @@ onMounted(async () => {
         <Deck @card-drawn="handleCardDrawn" :game-name="gameName" :player-name="playerName"/>
       </div>
 
-      <PlayerHand :playerHand="playerHand" @card-played="handleCardPlayed" />
+      <PlayerHandComponent :playerHand="playerHand" @card-played="handleCardPlayed" />
     </template>
   </div>
 </template>

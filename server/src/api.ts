@@ -1,5 +1,5 @@
 import { ServerResponse } from "./response"
-import { CreateGameDTO, CreatePlayerHandDTO, GamesNameDTO, GameStore, ServerError } from "./servermodel"
+import { CreateGameDTO, CreatePlayerHandDTO, GamesNameDTO, GameStore, PlayerHandSubscription, ServerError } from "./servermodel"
 import { ServerModel } from "./servermodel"
 import type { PlayerHand } from "domain/src/model/playerHand"
 import { game, type Game } from "domain/src/model/Game"
@@ -8,7 +8,7 @@ import { Type } from "domain/src/model/types"
 
 export interface Broadcaster {
   sendPendingGames: (message: CreateGameDTO[]) => Promise<void>,
-  sendPlayerHands: (gameName: string, playerHands: PlayerHand[]) => Promise<void>
+  sendPlayerHands: (gameName: string, playerHands: PlayerHandSubscription[]) => Promise<void>
   sendGameStarted: (gameName: string, game: Game) => Promise<void> 
 }
 
@@ -38,7 +38,7 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     broadcaster.sendPendingGames(games)
   }
 
-   const broadcastPlayerHands = async (gameName: string, playerHands: PlayerHand[]): Promise<void> => {
+   const broadcastPlayerHands = async (gameName: string, playerHands: PlayerHandSubscription[]): Promise<void> => {
     console.log("broadcaster")
     console.log(playerHands)
     await broadcaster.sendPlayerHands(gameName, playerHands)
@@ -56,8 +56,12 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
 
   async function create_player_hand(dto : CreatePlayerHandDTO){
     const result = await server.create_player_hand(dto);
+
     const playerHands = await server.get_games_player_hands({ name: dto.gameName })
-    await playerHands.process(hands => broadcastPlayerHands(dto.gameName, hands))
+    await playerHands.process(hands => {
+      const subscriptionHands = hands.map(mapPlayerHandToSubscription)
+      return broadcastPlayerHands(dto.gameName, subscriptionHands);
+    })
   
     return result;
   }
@@ -81,7 +85,10 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
 
     // update player hands
     const playerHands = await server.get_games_player_hands({ name: gameName })
-    await playerHands.process(hands => broadcastPlayerHands(gameName, hands))
+    await playerHands.process(hands => {
+      const subscriptionHands = hands.map(mapPlayerHandToSubscription)
+      return broadcastPlayerHands(gameName, subscriptionHands);
+    })
 
     return cards
   }
@@ -95,4 +102,12 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     start_game,
     take_cards
   }
+}
+
+export function mapPlayerHandToSubscription(hand: PlayerHand): PlayerHandSubscription {
+  return {
+    playerName: hand.playerName,
+    numberOfCards: hand.playerCards.length,
+    score: hand.score
+  };
 }

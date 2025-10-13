@@ -11,6 +11,13 @@ export type SimpleGameDTO = {
   name: string
 }
 
+export type PlayerHandSubscription = {
+  playerName: string,
+  numberOfCards: number,
+  score: number
+}
+
+
 const wsLink = new GraphQLWsLink(createClient({
   url: 'ws://localhost:4000/graphql',
 }))
@@ -216,13 +223,13 @@ export async function onPendingGamesUpdated(subscriber: (games: SimpleGameDTO[])
 
 export async function onGamePlayerHandsUpdated(
   gameName: string,
-  subscriber: (playerHands: PlayerHand[]) => void
+  subscriber: (playerHands: PlayerHandSubscription[]) => void
 ) {
   const gamePlayerHandsSubscription = gql`
     subscription GamePlayerHandsSubscription($gameName: String!) {
       game_player_hands_updated(gameName: $gameName) {
         playerName
-        cards
+        numberOfCards
         score
       }
     }
@@ -236,7 +243,7 @@ export async function onGamePlayerHandsUpdated(
   observable.subscribe({
     next({ data }) {
       if (data && data.game_player_hands_updated) {
-        const playerHands: PlayerHand[] = data.game_player_hands_updated;
+        const playerHands: PlayerHandSubscription[] = data.game_player_hands_updated;
         subscriber(playerHands);
       }
     },
