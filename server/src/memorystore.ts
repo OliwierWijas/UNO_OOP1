@@ -2,8 +2,9 @@ import { GameStore, CreateGameDTO, StoreError, CreatePlayerHandDTO, GamesNameDTO
 import { game, type Game } from "domain/src/model/Game"
 import { ServerResponse } from "./response"
 import { playerHand, type PlayerHand } from "domain/src/model/playerHand"
-import {deck, type Deck} from "domain/src/model/deck"
-import { discardPile, type DiscardPile } from "domain/src/model/discardPile"
+import { deck } from "domain/src/model/deck"
+import { Card } from "domain/src/model/card"
+import { Type } from "domain/src/model/types"
 
 const not_found = (key: any): StoreError => ({ type: 'Not Found', key })
 
@@ -73,10 +74,19 @@ export class MemoryStore implements GameStore {
     }
 
     const newDeck = deck();
-    const newDiscardPile = discardPile()
 
-
-    targetGame.startGame(newDeck, newDiscardPile);
+    targetGame.startGame(newDeck);
     return ServerResponse.ok(targetGame);
+  }
+
+  async take_cards(gameName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>> {
+    const targetGame = this._games.find(g => g.name === gameName);
+    if (!targetGame) {
+      return ServerResponse.error(not_found(gameName));
+    }
+
+    const cards = targetGame.getCurrentRound().deck.drawCards(number)
+
+    return ServerResponse.ok(cards)
   }
 }

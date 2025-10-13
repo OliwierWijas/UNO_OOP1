@@ -30,7 +30,7 @@ gameDeck.shuffle();
 const discardPile = reactive(createDiscardPile());
 const playerHand = reactive(createPlayerHand(playerName));
 const opponents = reactive<ReturnType<typeof createPlayerHand>[]>([]);
-const currentRound = reactive(createRound([playerHand, ...opponents], gameDeck, discardPile));
+const currentRound = reactive(createRound([playerHand, ...opponents], gameDeck));
 
 const isLoading = ref(false);
 const gameStarted = ref(false);
@@ -66,7 +66,7 @@ function updatePlayerHands(playerHands: any[]) {
     }
   });
   const allPlayers = [playerHand, ...opponents];
-  Object.assign(currentRound, createRound(allPlayers, gameDeck, discardPile));
+  Object.assign(currentRound, createRound(allPlayers, gameDeck));
 }
 
 async function startGame() {

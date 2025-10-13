@@ -1,5 +1,6 @@
 import type { Card } from "../model/card"
 import type { Color, Digit, Type } from "../model/types"
+import { standardShuffler } from "./random_utils"
 
 
 export class DeckFactory {
@@ -39,6 +40,9 @@ export class DeckFactory {
       ),
       ...WILD_TYPES.flatMap((type) => this.createWildCards(type, 4)),
     ]
+
+    standardShuffler(cards)
+    
     return cards
   }
 }

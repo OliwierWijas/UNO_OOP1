@@ -1,5 +1,5 @@
 import { API } from "./api"
-import { CreateGameDTO, CreatePlayerHandDTO, GamesNameDTO } from "./servermodel"
+import { CreateGameDTO, CreatePlayerHandDTO, GamesNameDTO, TakeCardsDTO } from "./servermodel"
 import { GraphQLError } from "graphql"
 import { PubSub } from "graphql-subscriptions"
 
@@ -52,6 +52,21 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
         const res = await api.start_game(params.gameName);
         return res.resolve({
           onSuccess: async game => game,
+          onError: respond_with_error
+        });
+      },
+      async take_cards(_: any, params: { takeCardsDTO: TakeCardsDTO }) {
+        const res = await api.take_cards(params.takeCardsDTO.gameName, params.takeCardsDTO.numberOfCards);
+        console.log(res)
+        return res.resolve({
+          onSuccess: async (cards) =>
+            cards.map(card => {
+              return {
+                color: 'color' in card ? card.color : null,
+                digit: card.type === 'NUMBERED' ? card.number : null,
+                type: card.type
+              };
+            }),
           onError: respond_with_error
         });
       },

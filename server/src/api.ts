@@ -3,6 +3,8 @@ import { CreateGameDTO, CreatePlayerHandDTO, GamesNameDTO, GameStore, ServerErro
 import { ServerModel } from "./servermodel"
 import type { PlayerHand } from "domain/src/model/playerHand"
 import type { Game } from "domain/src/model/Game"
+import { Card } from "domain/src/model/card"
+import { Type } from "domain/src/model/types"
 
 export interface Broadcaster {
   sendPendingGames: (message: CreateGameDTO[]) => Promise<void>,
@@ -17,6 +19,7 @@ export type API = {
   create_player_hand : (dto : CreatePlayerHandDTO)  => Promise<ServerResponse<PlayerHand, ServerError>>
   get_game_player_hands : (gameName: GamesNameDTO) => Promise<ServerResponse<PlayerHand[], ServerError>>
   start_game: (gameName: GamesNameDTO) => Promise<ServerResponse<Game, ServerError>>
+  take_cards: (gameName: string, number: number) => Promise<ServerResponse<Card<Type>[], ServerError>>
 }
 
 export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
@@ -63,13 +66,18 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
   }
 
   async function start_game(gameName: GamesNameDTO) {
-  const result = await server.start_game(gameName);
-  result.process(async (game) => {
-    await broadcaster.sendGameStarted(gameName.name, game);
-  });
-  
-  return result;
-}
+    const result = await server.start_game(gameName);
+    result.process(async (game) => {
+      await broadcaster.sendGameStarted(gameName.name, game);
+    });
+    
+    return result;
+  }
+
+  async function take_cards(gameName: string, number: number) {
+    const cards = await server.take_cards(gameName, number)
+    return cards
+  }
 
   return {
     create_game,
@@ -77,6 +85,7 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     get_games,
     create_player_hand,
     get_game_player_hands,
-    start_game
+    start_game,
+    take_cards
   }
 }

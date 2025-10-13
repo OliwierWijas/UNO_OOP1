@@ -14,16 +14,28 @@ type ReturnGameDTO {
   name: String!
 }
 
+type Card {
+  color: String
+  digit: Int
+  type: String!
+}
+
 input CreatePlayerHandDTO{
   playerName : String!
   gameName : String!
 }
+
 input CreateGameDTO {
   name: String!
 }
 
 input GameNameDTO {
   name : String!
+}
+
+input TakeCardsDTO {
+  gameName: String!
+  numberOfCards: Int!
 }
 
 type Query {
@@ -36,6 +48,7 @@ type Mutation {
   create_game(game: CreateGameDTO) : ReturnGameDTO
   create_player_hand(playerHand: CreatePlayerHandDTO!): PlayerHand!
   start_game(gameName: GameNameDTO!): Game!
+  take_cards(takeCardsDTO: TakeCardsDTO!): [Card!]!
 }
 
 type Subscription {

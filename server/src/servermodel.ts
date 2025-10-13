@@ -1,6 +1,8 @@
+import { Card } from "domain/src/model/card"
 import { ServerResponse } from "./response"
 import type { Game } from "domain/src/model/Game"
-import { playerHand, type PlayerHand } from "domain/src/model/playerHand"
+import { type PlayerHand } from "domain/src/model/playerHand"
+import { Type } from "domain/src/model/types"
 
 export type CreateGameDTO = {
   name: string
@@ -13,6 +15,11 @@ export type GamesNameDTO = {
 export type CreatePlayerHandDTO = {
   playerName : string,
   gameName : string
+}
+
+export type TakeCardsDTO = {
+  gameName: string,
+  numberOfCards: number
 }
 
 export type PendingGame = {
@@ -35,6 +42,7 @@ export interface GameStore {
   create_player_hand(playerHand : CreatePlayerHandDTO): Promise<ServerResponse<PlayerHand, StoreError>>
   get_game_player_hands(gamesName : GamesNameDTO) :  Promise<ServerResponse<PlayerHand[], StoreError>>
   start_game(gamesName: GamesNameDTO): Promise<ServerResponse<Game, StoreError>>
+  take_cards(gameName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>>
 }
 
 export class ServerModel {
@@ -71,5 +79,10 @@ export class ServerModel {
   async start_game(dto: GamesNameDTO): Promise<ServerResponse<Game, StoreError>> {
   const result = await this.store.start_game(dto);
   return result;
-}
+  }
+
+  async take_cards(gameName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>> {
+    const cards = await this.store.take_cards(gameName, number)
+    return cards
+  }
 }

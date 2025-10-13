@@ -3,7 +3,7 @@ import { RulesHelper } from '../utils/rules_helper'
 import type { Card } from './card'
 import type { Deck } from './deck'
 import type { PlayerHand } from './playerHand'
-import type { DiscardPile } from './discardPile'
+import { discardPile, type DiscardPile } from './discardPile'
 
 export interface Round {
   playerHands: PlayerHand[]
@@ -17,7 +17,7 @@ export interface Round {
   putCard(card: Card<Type>): boolean
 }
 
-export function round(hands: PlayerHand[], roundDeck: Deck, discardPile: DiscardPile): Round {
+export function round(hands: PlayerHand[], roundDeck: Deck): Round {
   function findDealer(playerHands: PlayerHand[]): PlayerHand {
     return playerHands[0] ///we might change here later with the actual logic
   }
@@ -26,7 +26,7 @@ export function round(hands: PlayerHand[], roundDeck: Deck, discardPile: Discard
     playerHands: hands,
     deck: roundDeck,
     currentPlayer: undefined,
-    discardPile: discardPile,
+    discardPile: discardPile(),
     isFinished: false,
 
     distributeCards() {

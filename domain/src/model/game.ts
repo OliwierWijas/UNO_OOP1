@@ -2,7 +2,6 @@ import { RulesHelper } from '../utils/rules_helper'
 import type { Deck } from './deck'
 import type { PlayerHand } from './playerHand'
 import { round, type Round } from './round'
-import type { DiscardPile } from './discardPile'
 import { State } from './state'
 
 export interface Game {
@@ -12,9 +11,10 @@ export interface Game {
   currentRound: Round | undefined
   state: State
 
-  startGame(deck: Deck, discardPile: DiscardPile): void
+  startGame(deck: Deck): void
   joinGame(playerHand: PlayerHand): void
-  nextRound(deck: Deck, discardPile: DiscardPile): PlayerHand | undefined
+  nextRound(deck: Deck): PlayerHand | undefined
+  getCurrentRound(): Round
 }
 
 export function game(name: string): Game {
@@ -25,11 +25,11 @@ export function game(name: string): Game {
     currentRound: undefined,
     state: "PENDING",
 
-    startGame(deck: Deck, discardPile: DiscardPile) {
+    startGame(deck: Deck) {
       if (this.playerHands.length < 2) 
         throw new Error("Too less players.")
 
-      const firstRound = round(this.playerHands, deck, discardPile)
+      const firstRound = round(this.playerHands, deck)
       this.rounds.push(firstRound)
       this.currentRound = firstRound
       this.state = "STARTED"
@@ -41,7 +41,7 @@ export function game(name: string): Game {
       this.playerHands.push(playerHand)
     },
 
-    nextRound(deck: Deck, discardPile: DiscardPile) {
+    nextRound(deck: Deck) {
       if (this.state === "STARTED") {
           if (!this.currentRound) return; 
 
@@ -57,7 +57,7 @@ export function game(name: string): Game {
                   p.resetCards()
               });
               
-              const nextRound = round(this.playerHands, deck, discardPile);
+              const nextRound = round(this.playerHands, deck);
               this.rounds.push(nextRound);
               this.currentRound = nextRound;
           }
@@ -67,6 +67,10 @@ export function game(name: string): Game {
       else {
           throw new Error("The game is not in started state.")
       }
+    },
+
+    getCurrentRound() {
+      return this.rounds[this.rounds.length - 1]
     }
   }
 }
