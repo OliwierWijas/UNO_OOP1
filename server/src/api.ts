@@ -9,7 +9,8 @@ import { Type } from "domain/src/model/types"
 export interface Broadcaster {
   sendPendingGames: (message: CreateGameDTO[]) => Promise<void>,
   sendPlayerHands: (gameName: string, playerHands: PlayerHandSubscription[]) => Promise<void>
-  sendGameStarted: (gameName: string, game: Game) => Promise<void> 
+  sendGameStarted: (gameName: string, game: Game) => Promise<void>
+  sendCurrentPlayer: (gameName: string) => Promise<void>
 }
 
 export type API = {
@@ -20,6 +21,7 @@ export type API = {
   get_game_player_hands : (gameName: GamesNameDTO) => Promise<ServerResponse<PlayerHand[], ServerError>>
   start_game: (gameName: GamesNameDTO) => Promise<ServerResponse<Game, ServerError>>
   take_cards: (gameName: string, playerName: string, number: number) => Promise<ServerResponse<Card<Type>[], ServerError>>
+  play_card: (gameName: string, card: Card<Type>) => Promise<ServerResponse<boolean, ServerError>>
 }
 
 export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
@@ -38,10 +40,12 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     broadcaster.sendPendingGames(games)
   }
 
-   const broadcastPlayerHands = async (gameName: string, playerHands: PlayerHandSubscription[]): Promise<void> => {
-    console.log("broadcaster")
-    console.log(playerHands)
+  const broadcastPlayerHands = async (gameName: string, playerHands: PlayerHandSubscription[]): Promise<void> => {
     await broadcaster.sendPlayerHands(gameName, playerHands)
+  }
+
+  async function broadcastCurrentPlayer(playerName: string): Promise<void> {
+    broadcaster.sendCurrentPlayer(playerName)
   }
   
   async function get_games() {
@@ -76,7 +80,12 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     result.process(async (game) => {
       await broadcaster.sendGameStarted(gameName.name, game);
     });
-    
+
+    const currentPlayer = await server.get_current_player(gameName.name)
+    currentPlayer.process(async (player) => {
+      return broadcastCurrentPlayer(player.playerName)
+    });
+
     return result;
   }
 
@@ -93,6 +102,17 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     return cards
   }
 
+    async function play_card(gameName: string, card: Card<Type>) {
+    const cardPlayed = await server.play_card(gameName, card)
+
+    // update discard pile
+    if (cardPlayed) {
+      //broadcast
+    }
+
+    return cardPlayed
+  }
+
   return {
     create_game,
     get_pending_games,
@@ -100,7 +120,8 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     create_player_hand,
     get_game_player_hands,
     start_game,
-    take_cards
+    take_cards,
+    play_card
   }
 }
 

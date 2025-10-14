@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { useCurrentPlayerStore } from '@/stores/CurrentPlayerStore';
 import { usePlayerHandsStore } from '@/stores/PlayerHandsStore'
 
 const playerHandsStore = usePlayerHandsStore();
+const currentPlayerStore = useCurrentPlayerStore()
 
 </script>
 
@@ -10,6 +12,9 @@ const playerHandsStore = usePlayerHandsStore();
     <div class="round">
         <!-- add round number as paramiter later -->
       Round 1
+    </div>
+    <div class="round">
+      Current player: {{ currentPlayerStore.currentPlayer }}
     </div>
     <div class="players-row">
       <div

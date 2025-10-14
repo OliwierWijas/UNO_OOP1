@@ -1,6 +1,6 @@
 import { Card } from "domain/src/model/card"
 import { ServerResponse } from "./response"
-import type { Game } from "domain/src/model/Game"
+import { game, type Game } from "domain/src/model/Game"
 import { type PlayerHand } from "domain/src/model/playerHand"
 import { Type } from "domain/src/model/types"
 
@@ -37,6 +37,13 @@ export type PlayerHandSubscription = {
   score: number
 }
 
+export type PlayCardDTO = {
+  gameName: string,
+  color: string,
+  digit: number,
+  type: string
+}
+
 export type StoreError = { type: 'Not Found', key: any } | { type: 'DB Error', error: any } | { type: 'Game has too much Players', key: any }
 export type ServerError = { type: 'Forbidden' } | StoreError
 
@@ -50,6 +57,8 @@ export interface GameStore {
   get_game_player_hands(gamesName : GamesNameDTO) :  Promise<ServerResponse<PlayerHand[], StoreError>>
   start_game(gamesName: GamesNameDTO): Promise<ServerResponse<Game, StoreError>>
   take_cards(gameName: string, playerName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>>
+  play_card(gameName: string, card: Card<Type>): Promise<ServerResponse<boolean, StoreError>>
+  get_current_player(gameName: string): Promise<ServerResponse<PlayerHand, StoreError>>
 }
 
 export class ServerModel {
@@ -91,5 +100,15 @@ export class ServerModel {
   async take_cards(gameName: string, playerName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>> {
     const cards = await this.store.take_cards(gameName, playerName, number)
     return cards
+  }
+
+  async play_card(gameName: string, card: Card<Type>): Promise<ServerResponse<boolean, StoreError>> {
+    const cardPlayed = await this.store.play_card(gameName, card)
+    return cardPlayed
+  }
+
+  async get_current_player(gameName: string): Promise<ServerResponse<PlayerHand, StoreError>> {
+    const currentPlayer = await this.store.get_current_player(gameName)
+    return currentPlayer
   }
 }

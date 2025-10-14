@@ -68,7 +68,7 @@ export class MemoryStore implements GameStore {
   }
 
   async start_game(gamesName : GamesNameDTO) : Promise<ServerResponse<Game, StoreError>>{
-     const targetGame = this._games.find(g => g.name === gamesName.name);
+    const targetGame = this._games.find(g => g.name === gamesName.name);
     if (!targetGame) {
       return ServerResponse.error(not_found(gamesName.name));
     }
@@ -76,6 +76,8 @@ export class MemoryStore implements GameStore {
     const newDeck = deck();
 
     targetGame.startGame(newDeck);
+    targetGame.currentRound?.findDealer()
+
     return ServerResponse.ok(targetGame);
   }
 
@@ -99,5 +101,31 @@ export class MemoryStore implements GameStore {
 
     player.takeCards(cards)
     return ServerResponse.ok(cards)
+  }
+
+  async play_card(gameName: string, card: Card<Type>): Promise<ServerResponse<boolean, StoreError>> {
+    const targetGame = this._games.find(g => g.name === gameName);
+    if (!targetGame) {
+      return ServerResponse.error(not_found(gameName));
+    }
+
+    const cardCanBePut = targetGame.currentRound?.putCard(card) ?? false
+    console.log(targetGame.currentRound)
+    console.log("CARDBEPUT " + cardCanBePut)
+    return ServerResponse.ok(cardCanBePut);
+  }
+
+  async get_current_player(gameName: string): Promise<ServerResponse<PlayerHand, StoreError>> {
+    const targetGame = this._games.find(g => g.name === gameName);
+    if (!targetGame) {
+      return ServerResponse.error(not_found(gameName));
+    }
+
+    const currentPlayer = targetGame.currentRound?.currentPlayer
+    if (!currentPlayer) {
+      return ServerResponse.error(not_found(currentPlayer));
+    }
+
+    return ServerResponse.ok(currentPlayer);
   }
 }

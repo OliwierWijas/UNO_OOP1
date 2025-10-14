@@ -169,6 +169,26 @@ export async function take_cards(gameName: string, playerName: string, numberOfC
   throw new Error("Server Error: " + response.error)
 }
 
+export async function play_card(gameName: string, color: string | null, digit: number | null, type: string): Promise<boolean> {
+  const response = await mutate(gql`
+    mutation PlayCard($gameName: String!, $color: String, $digit: Int, $type: String!) {
+      play_card(playCard: {
+        gameName: $gameName,
+        color: $color,
+        digit: $digit,
+        type: $type
+      })
+    }
+  `, {
+    gameName,
+    color,
+    digit,
+    type
+  });
+
+  return response.play_card === true;
+}
+
 
 // Subscriptions
 export async function onPendingGamesUpdated(subscriber: (games: SimpleGameDTO[]) => void) {
@@ -255,6 +275,33 @@ export async function onGameStarted(
     },
     error(err: any) {
       console.error('Game started subscription error:', err);
+    }
+  });
+}
+
+export async function onCurrentPlayerUpdated(
+  gameName: string,
+  subscriber: (playerName: string) => void
+) {
+  const currentPlayerSubscription = gql`
+    subscription CurrentPlayerUpdated($gameName: String!) {
+      current_player_updated(gameName: $gameName)
+    }
+  `;
+
+  const observable = apolloClient.subscribe({
+    query: currentPlayerSubscription,
+    variables: { gameName }
+  });
+
+  observable.subscribe({
+    next({ data }) {
+      if (data && data.current_player_updated) {
+        subscriber(data.current_player_updated);
+      }
+    },
+    error(err) {
+      console.error("Current player subscription error:", err);
     }
   });
 }

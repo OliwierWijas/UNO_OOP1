@@ -1,7 +1,8 @@
 import { API } from "./api"
-import { CreateGameDTO, CreatePlayerHandDTO, GamesNameDTO, TakeCardsDTO } from "./servermodel"
+import { CreateGameDTO, CreatePlayerHandDTO, GamesNameDTO, PlayCardDTO, TakeCardsDTO } from "./servermodel"
 import { GraphQLError } from "graphql"
 import { PubSub } from "graphql-subscriptions"
+import { mapCard } from "domain/src/utils/card_mapper"
 
 async function respond_with_error(err: any): Promise<never> {
   throw new GraphQLError(err.type)
@@ -72,6 +73,14 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
           onError: respond_with_error
         });
       },
+      async play_card(_: any, params: { playCard: PlayCardDTO }) {
+        const card = mapCard({ type: params.playCard.type, color: params.playCard.color, digit: params.playCard.digit })
+        const res = await api.play_card(params.playCard.gameName, card);
+        return res.resolve({
+          onSuccess: async cardPlayed => cardPlayed,
+          onError: respond_with_error
+        });
+      },
     },
 
     Subscription: {
@@ -90,7 +99,12 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
         subscribe: (_: any, params: { gameName: string }) => 
           pubsub.asyncIterableIterator([`GAME_STARTED_${params.gameName}`]),
         resolve: (payload: any) => payload.game
-      }
+      },
+
+      current_player_updated: {
+        subscribe: () => pubsub.asyncIterableIterator(['CURRENT_PLAYER']),
+        resolve: (payload: any) => payload.playerName 
+      },
     }
   }
 }

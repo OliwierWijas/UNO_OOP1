@@ -9,7 +9,6 @@ export const usePlayerHandsStore = defineStore('player hands', () => {
   const update = (hands: PlayerHandSubscription[]) => {
     playerHandsList.length = 0
     playerHandsList.push(...hands)
-    playerHandsList.forEach(p => console.log(p.playerName + " " + p.numberOfCards))
   }
   const clear = () => {
     playerHandsList.length = 0

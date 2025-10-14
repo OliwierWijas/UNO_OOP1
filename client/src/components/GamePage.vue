@@ -14,10 +14,12 @@ import { discardPile as createDiscardPile } from 'domain/src/model/discardPile';
 import * as api from "../model/uno-client";
 import { usePlayerHandsStore } from '@/stores/PlayerHandsStore';
 import { useOngoingGamesStore } from "@/stores/OngoingGamesStore"
+import { useCurrentPlayerStore } from '@/stores/CurrentPlayerStore';
 
 const route = useRoute();
 const playerHandsStore = usePlayerHandsStore();
 const ongoingGamesStore = useOngoingGamesStore();
+const currentPlayerStore = useCurrentPlayerStore()
 
 const gameName = (route.query.gameName as string) || 'DefaultGame';
 const playerName = (route.query.playerName as string) || 'Player';
@@ -50,6 +52,13 @@ function setupGameStartedSubscription() {
   });
 }
 
+function setupCurrentPlayerSubscription() {
+  api.onCurrentPlayerUpdated(gameName, (playerName) => {
+    currentPlayerStore.set(playerName);
+    currentRound.currentPlayer = createPlayerHand(playerName)
+  });
+}
+
 function updatePlayerHands(playerHands: any[]) {
   opponents.length = 0;
   playerHands.forEach(hand => {
@@ -62,7 +71,10 @@ function updatePlayerHands(playerHands: any[]) {
     }
   });
   const allPlayers = [playerHand, ...opponents];
+
+  const currentPlayer = currentRound.currentPlayer
   Object.assign(currentRound, createRound(allPlayers));
+  currentRound.currentPlayer = currentPlayer
 }
 
 async function startGame() {
@@ -98,10 +110,16 @@ function handleCardDrawn(card: Card<Type>) {
   }
 }
 
-function handleCardPlayed(payload: { cardIndex: number; card: Card<Type> }) {
+async function handleCardPlayed(payload: { cardIndex: number; card: Card<Type> }) {
   if (!gameStarted.value) return;
 
-  if (!currentRound.putCard(payload.card)) {
+  const { type } = payload.card;
+  const color = 'color' in payload.card ? payload.card.color : null;
+  const digit = type === 'NUMBERED' && 'number' in payload.card ? payload.card.number : null;
+
+  const canBePut = await api.play_card(gameName, color, digit, type)
+
+  if (!canBePut) {
     currentRound.currentPlayer?.putCardBack(payload.card, payload.cardIndex);
   }
 }
@@ -134,6 +152,7 @@ onMounted(async () => {
   await loadInitialPlayerHands();
   setupPlayerHandsSubscription();
   setupGameStartedSubscription();
+  setupCurrentPlayerSubscription();
 });
 </script>
 

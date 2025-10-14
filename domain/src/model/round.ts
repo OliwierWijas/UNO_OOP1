@@ -14,13 +14,10 @@ export interface Round {
 
   nextPlayer(): void
   putCard(card: Card<Type>): boolean
+  findDealer(): void
 }
 
 export function round(hands: PlayerHand[]): Round {
-  function findDealer(playerHands: PlayerHand[]): PlayerHand {
-    return playerHands[0] ///we might change here later with the actual logic
-  }
-
   return {
     playerHands: hands,
     deck: null,
@@ -28,9 +25,16 @@ export function round(hands: PlayerHand[]): Round {
     discardPile: discardPile(),
     isFinished: false,
 
+    findDealer() {
+      if (!this.playerHands || this.playerHands.length < 1)
+        throw new Error("Not enough players.")
+      
+      this.currentPlayer = this.playerHands[0] ///we might change here later with the actual logic
+    },
+
     nextPlayer() {
       if (!this.currentPlayer) {
-        this.currentPlayer = findDealer(this.playerHands)
+        this.findDealer()
         return
       }
 
@@ -42,7 +46,7 @@ export function round(hands: PlayerHand[]): Round {
     putCard(card: Card<Type>) : boolean {
       const lastCard = this.discardPile.getTopCard()
 
-      if (this.currentPlayer && lastCard && RulesHelper.canBePutOnTop(lastCard, card)) {
+      if (this.currentPlayer && RulesHelper.canBePutOnTop(lastCard, card)) {
         this.discardPile.addCard(card)
 
         if (this.currentPlayer.playerCards.length === 0) {
