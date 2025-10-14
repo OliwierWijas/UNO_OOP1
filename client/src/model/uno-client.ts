@@ -305,3 +305,35 @@ export async function onCurrentPlayerUpdated(
     }
   });
 }
+
+export async function onDiscardPileUpdated(
+  gameName: string,
+  subscriber: (cards: Card<Type>[]) => void
+) {
+  const discardPileSubscription = gql`
+    subscription DiscardPileUpdated($gameName: String!) {
+      discard_pile_updated(gameName: $gameName) {
+        color
+        digit
+        type
+      }
+    }
+  `;
+
+  const observable = apolloClient.subscribe({
+    query: discardPileSubscription,
+    variables: { gameName }
+  });
+
+  observable.subscribe({
+    next({ data }) {
+      if (data && data.discard_pile_updated) {
+        const cards = data.discard_pile_updated.map(mapCard);
+        subscriber(cards);
+      }
+    },
+    error(err: any) {
+      console.error("Discard pile subscription error:", err);
+    }
+  });
+}

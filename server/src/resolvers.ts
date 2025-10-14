@@ -108,7 +108,8 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
       },
 
       discard_pile_updated: {
-        subscribe: () => pubsub.asyncIterableIterator(['DISCARD_PILE']),
+        subscribe: (_: any, { gameName }: { gameName: string }) =>
+          pubsub.asyncIterableIterator([`DISCARD_PILE_${gameName}`]),
         resolve: (payload: any) => payload.cards 
       },
     }

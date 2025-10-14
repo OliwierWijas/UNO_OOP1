@@ -10,21 +10,22 @@ import TopInfoBar from './TopInfoBar.vue';
 import type { Type } from 'domain/src/model/types';
 import { reactive, onMounted, computed, ref } from 'vue';
 import { round as createRound } from 'domain/src/model/round';
-import { discardPile as createDiscardPile } from 'domain/src/model/discardPile';
 import * as api from "../model/uno-client";
 import { usePlayerHandsStore } from '@/stores/PlayerHandsStore';
 import { useOngoingGamesStore } from "@/stores/OngoingGamesStore"
 import { useCurrentPlayerStore } from '@/stores/CurrentPlayerStore';
+import { useDiscardPileStore } from '@/stores/DiscardPileStore';
+import { discardPile as createDiscardPile } from "domain/src/model/discardPile"
 
 const route = useRoute();
 const playerHandsStore = usePlayerHandsStore();
 const ongoingGamesStore = useOngoingGamesStore();
 const currentPlayerStore = useCurrentPlayerStore()
+const discardPileStore = useDiscardPileStore();
 
 const gameName = (route.query.gameName as string) || 'DefaultGame';
 const playerName = (route.query.playerName as string) || 'Player';
 
-const discardPile = reactive(createDiscardPile());
 const playerHand = reactive(createPlayerHand(playerName));
 const opponents = reactive<ReturnType<typeof createPlayerHand>[]>([]);
 const currentRound = reactive(createRound([playerHand, ...opponents]));
@@ -56,6 +57,15 @@ function setupCurrentPlayerSubscription() {
   api.onCurrentPlayerUpdated(gameName, (playerName) => {
     currentPlayerStore.set(playerName);
     currentRound.currentPlayer = createPlayerHand(playerName)
+  });
+}
+
+function setupDiscardPileSubscription() {
+  api.onDiscardPileUpdated(gameName, (cards) => {
+    console.log(cards)
+    const discardPile = createDiscardPile()
+    discardPile.pile = cards
+    discardPileStore.set(discardPile);
   });
 }
 
@@ -153,6 +163,7 @@ onMounted(async () => {
   setupPlayerHandsSubscription();
   setupGameStartedSubscription();
   setupCurrentPlayerSubscription();
+  setupDiscardPileSubscription();
 });
 </script>
 
@@ -216,7 +227,7 @@ onMounted(async () => {
       </template>
 
       <div class="center-area">
-        <DiscardPile :discardPile="discardPile" />
+        <DiscardPile />
         <Deck @card-drawn="handleCardDrawn" :game-name="gameName" :player-name="playerName"/>
       </div>
 

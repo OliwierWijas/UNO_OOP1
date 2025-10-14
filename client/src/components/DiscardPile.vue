@@ -1,26 +1,15 @@
 <script setup lang="ts">
-import { computed, type PropType } from 'vue';
+import { useDiscardPileStore } from '@/stores/DiscardPileStore';
 import UnoCard from './Card.vue';
-import type { DiscardPile } from 'domain/src/model/discardPile';
 
-const props = defineProps({
-  discardPile: {
-    type: Object as PropType<DiscardPile>,
-    required: true
-  }
-});
-
-const latestCard = computed(() => {
-  const pile = props.discardPile;
-  return pile.getTopCard();
-});
+const discardPileStore = useDiscardPileStore();
 
 </script>
 
 <template>
   <div>
-    <div v-if="latestCard">
-      <UnoCard :card="latestCard" />
+    <div v-if="discardPileStore.topCard">
+      <UnoCard :card="discardPileStore.topCard" />
     </div>
     <div v-else >
       <div class= "empty-space"></div>

@@ -50,6 +50,7 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
   }
 
   async function broadcastDiscardPile(gameName: string, cards: DiscardPileSubscription[]): Promise<void> {
+    console.log(cards)
     return broadcaster.sendDiscardPile(gameName, cards);
   }
   
