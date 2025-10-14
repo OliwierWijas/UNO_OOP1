@@ -5,6 +5,7 @@ import { playerHand, type PlayerHand } from "domain/src/model/playerHand"
 import { deck } from "domain/src/model/deck"
 import { Card } from "domain/src/model/card"
 import { Type } from "domain/src/model/types"
+import { DiscardPile } from "domain/src/model/discardPile"
 
 const not_found = (key: any): StoreError => ({ type: 'Not Found', key })
 
@@ -110,8 +111,7 @@ export class MemoryStore implements GameStore {
     }
 
     const cardCanBePut = targetGame.currentRound?.putCard(card) ?? false
-    console.log(targetGame.currentRound)
-    console.log("CARDBEPUT " + cardCanBePut)
+
     return ServerResponse.ok(cardCanBePut);
   }
 
@@ -127,5 +127,21 @@ export class MemoryStore implements GameStore {
     }
 
     return ServerResponse.ok(currentPlayer);
+  }
+  
+  async get_discard_pile(gameName: string): Promise<ServerResponse<DiscardPile, StoreError>> {
+    const targetGame = this._games.find(g => g.name === gameName);
+    if (!targetGame) {
+      return ServerResponse.error(not_found(gameName));
+    }
+
+    const currentRound = targetGame.currentRound
+    if (!currentRound) {
+      return ServerResponse.error(not_found(currentRound));
+    }
+
+    const discardPile = currentRound.discardPile
+
+    return ServerResponse.ok(discardPile);
   }
 }

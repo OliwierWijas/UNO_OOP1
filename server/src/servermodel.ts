@@ -3,6 +3,7 @@ import { ServerResponse } from "./response"
 import { game, type Game } from "domain/src/model/Game"
 import { type PlayerHand } from "domain/src/model/playerHand"
 import { Type } from "domain/src/model/types"
+import { DiscardPile } from "domain/src/model/discardPile"
 
 export type CreateGameDTO = {
   name: string
@@ -44,6 +45,12 @@ export type PlayCardDTO = {
   type: string
 }
 
+export type DiscardPileSubscription = {
+  color: string | null,
+  digit: number | null,
+  type: string
+}
+
 export type StoreError = { type: 'Not Found', key: any } | { type: 'DB Error', error: any } | { type: 'Game has too much Players', key: any }
 export type ServerError = { type: 'Forbidden' } | StoreError
 
@@ -59,6 +66,7 @@ export interface GameStore {
   take_cards(gameName: string, playerName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>>
   play_card(gameName: string, card: Card<Type>): Promise<ServerResponse<boolean, StoreError>>
   get_current_player(gameName: string): Promise<ServerResponse<PlayerHand, StoreError>>
+  get_discard_pile(gameName: string): Promise<ServerResponse<DiscardPile, StoreError>>
 }
 
 export class ServerModel {
@@ -110,5 +118,10 @@ export class ServerModel {
   async get_current_player(gameName: string): Promise<ServerResponse<PlayerHand, StoreError>> {
     const currentPlayer = await this.store.get_current_player(gameName)
     return currentPlayer
+  }
+
+  async get_discard_pile(gameName: string): Promise<ServerResponse<DiscardPile, StoreError>> {
+    const discardPile = await this.store.get_discard_pile(gameName)
+    return discardPile
   }
 }

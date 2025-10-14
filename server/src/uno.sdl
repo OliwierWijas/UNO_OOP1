@@ -71,4 +71,5 @@ type Subscription {
   game_player_hands_updated(gameName: String!): [PlayerHandSubscription!]!
   game_started(gameName: String!): Game!
   current_player_updated(gameName: String!): String!
+  discard_pile_updated(gameName: String!): [Card!]!
 }

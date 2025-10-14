@@ -1,8 +1,8 @@
 import { ServerResponse } from "./response"
-import { CreateGameDTO, CreatePlayerHandDTO, GamesNameDTO, GameStore, PlayerHandSubscription, ServerError } from "./servermodel"
+import { CreateGameDTO, CreatePlayerHandDTO, DiscardPileSubscription, GamesNameDTO, GameStore, PlayerHandSubscription, ServerError } from "./servermodel"
 import { ServerModel } from "./servermodel"
 import type { PlayerHand } from "domain/src/model/playerHand"
-import { game, type Game } from "domain/src/model/Game"
+import { type Game } from "domain/src/model/Game"
 import { Card } from "domain/src/model/card"
 import { Type } from "domain/src/model/types"
 
@@ -10,7 +10,8 @@ export interface Broadcaster {
   sendPendingGames: (message: CreateGameDTO[]) => Promise<void>,
   sendPlayerHands: (gameName: string, playerHands: PlayerHandSubscription[]) => Promise<void>
   sendGameStarted: (gameName: string, game: Game) => Promise<void>
-  sendCurrentPlayer: (gameName: string) => Promise<void>
+  sendCurrentPlayer: (gameName: string, playerName: string) => Promise<void>
+  sendDiscardPile(gameName: string, cards: DiscardPileSubscription[]): Promise<void>
 }
 
 export type API = {
@@ -44,8 +45,12 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     await broadcaster.sendPlayerHands(gameName, playerHands)
   }
 
-  async function broadcastCurrentPlayer(playerName: string): Promise<void> {
-    broadcaster.sendCurrentPlayer(playerName)
+  async function broadcastCurrentPlayer(gameName: string, playerName: string): Promise<void> {
+    broadcaster.sendCurrentPlayer(gameName, playerName)
+  }
+
+  async function broadcastDiscardPile(gameName: string, cards: DiscardPileSubscription[]): Promise<void> {
+    return broadcaster.sendDiscardPile(gameName, cards);
   }
   
   async function get_games() {
@@ -83,7 +88,7 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
 
     const currentPlayer = await server.get_current_player(gameName.name)
     currentPlayer.process(async (player) => {
-      return broadcastCurrentPlayer(player.playerName)
+      return broadcastCurrentPlayer(gameName.name, player.playerName)
     });
 
     return result;
@@ -107,7 +112,16 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
 
     // update discard pile
     if (cardPlayed) {
-      //broadcast
+      const discardPile = await server.get_discard_pile(gameName)
+      await discardPile.process(discardPile => {
+        const mappedCards: DiscardPileSubscription[] = discardPile.pile.map(card => ({
+          color: 'color' in card ? card.color : null,
+          digit: card.type === 'NUMBERED' ? card.number : null,
+          type: card.type
+        }));
+
+        return broadcastDiscardPile(gameName, mappedCards);
+      });
     }
 
     return cardPlayed

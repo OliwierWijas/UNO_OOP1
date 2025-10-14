@@ -102,8 +102,14 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
       },
 
       current_player_updated: {
-        subscribe: () => pubsub.asyncIterableIterator(['CURRENT_PLAYER']),
-        resolve: (payload: any) => payload.playerName 
+        subscribe: (_: any, { gameName }: { gameName: string }) =>
+          pubsub.asyncIterableIterator([`CURRENT_PLAYER_${gameName}`]),
+        resolve: (payload: any) => payload.playerName
+      },
+
+      discard_pile_updated: {
+        subscribe: () => pubsub.asyncIterableIterator(['DISCARD_PILE']),
+        resolve: (payload: any) => payload.cards 
       },
     }
   }

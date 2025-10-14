@@ -13,7 +13,7 @@ import { MemoryStore } from './memorystore'
 import { create_api } from './api'
 import { create_resolvers } from './resolvers'
 import { readFileSync } from 'fs'
-import { CreateGameDTO, PlayerHandSubscription } from './servermodel'
+import { CreateGameDTO, DiscardPileSubscription, PlayerHandSubscription } from './servermodel'
 import type { Game } from 'domain/src/model/game'
 
 const typeDefs = readFileSync('./src/uno.sdl', 'utf8')
@@ -31,8 +31,11 @@ async function startServer() {
     async sendGameStarted(gameName: string, game: Game) {
       await pubsub.publish(`GAME_STARTED_${gameName}`, { game });
     },
-    async sendCurrentPlayer(playerName: string) {
-      await pubsub.publish('CURRENT_PLAYER', { playerName });
+    async sendCurrentPlayer(gameName: string, playerName: string) {
+      await pubsub.publish(`CURRENT_PLAYER_${gameName}`, { playerName });
+    },
+    async sendDiscardPile(gameName: string, cards: DiscardPileSubscription[]): Promise<void> {
+      await pubsub.publish(`DISCARD_PILE_${gameName}`, { cards });
     }
   }
   const api = create_api(broadcaster, store)
