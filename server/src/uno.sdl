@@ -47,9 +47,7 @@ input TakeCardsDTO {
 
 input PlayCardDTO {
   gameName: String!
-  color: String
-  digit: Int
-  type: String!
+  index: Int!
 }
 
 type Query {

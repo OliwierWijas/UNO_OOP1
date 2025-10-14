@@ -104,13 +104,24 @@ export class MemoryStore implements GameStore {
     return ServerResponse.ok(cards)
   }
 
-  async play_card(gameName: string, card: Card<Type>): Promise<ServerResponse<boolean, StoreError>> {
+  async play_card(gameName: string, index: number): Promise<ServerResponse<boolean, StoreError>> {
     const targetGame = this._games.find(g => g.name === gameName);
     if (!targetGame) {
       return ServerResponse.error(not_found(gameName));
     }
 
+    const currentPlayer = targetGame.currentRound?.currentPlayer
+    if (!currentPlayer) {
+      return ServerResponse.error(not_found(currentPlayer));
+    }
+
+    const card = currentPlayer.playerCards[index]
+
     const cardCanBePut = targetGame.currentRound?.putCard(card) ?? false
+
+    if (cardCanBePut) {
+      currentPlayer.playCard(index)
+    }
 
     return ServerResponse.ok(cardCanBePut);
   }

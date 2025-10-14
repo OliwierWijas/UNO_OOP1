@@ -4,6 +4,9 @@ import type { PlayerHand } from "domain/src/model/playerHand";
 import UnoCard from "./Card.vue";
 import type { Card } from "domain/src/model/card";
 import type { Type } from "domain/src/model/types";
+import { useCurrentPlayerStore } from '@/stores/CurrentPlayerStore';
+
+const currentPlayerStore = useCurrentPlayerStore()
 
 const props = defineProps({
   playerHand: {
@@ -19,7 +22,9 @@ const emit = defineEmits<{
 }>();
 
 function playCard(index: number) {
+  console.log(currentHand.value.playerCards)
   const card = currentHand.value.playCard(index)
+  console.log(card)
   emit('card-played', { cardIndex: index, card });
 }
 
@@ -40,7 +45,7 @@ const cardStyle = (index : number) => {
 </script>
 <template>
   <div class="player-hand">
-    <div class="hand-cards">
+    <div v-if="currentPlayerStore.currentPlayer === props.playerHand.playerName" class="hand-cards">
       <UnoCard
         v-for="(card, index) in currentHand.playerCards"
         :key="index"
@@ -49,6 +54,10 @@ const cardStyle = (index : number) => {
         :style="cardStyle(index)"
         @click="playCard(index)"
       />
+    </div>
+
+    <div v-else class="waiting-message">
+      {{ currentPlayerStore.currentPlayer }} is playing...
     </div>
   </div>
 </template>
@@ -77,4 +86,17 @@ const cardStyle = (index : number) => {
   transform: translateY(-2.5rem); 
   z-index: 50;
 }
+
+.waiting-message {
+  color: white;
+  font-size: 2rem;
+  text-align: center;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  margin-top: 0;
+}
+
 </style>

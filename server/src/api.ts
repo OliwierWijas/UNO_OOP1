@@ -22,7 +22,7 @@ export type API = {
   get_game_player_hands : (gameName: GamesNameDTO) => Promise<ServerResponse<PlayerHand[], ServerError>>
   start_game: (gameName: GamesNameDTO) => Promise<ServerResponse<Game, ServerError>>
   take_cards: (gameName: string, playerName: string, number: number) => Promise<ServerResponse<Card<Type>[], ServerError>>
-  play_card: (gameName: string, card: Card<Type>) => Promise<ServerResponse<boolean, ServerError>>
+  play_card: (gameName: string, index: number) => Promise<ServerResponse<boolean, ServerError>>
 }
 
 export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
@@ -108,8 +108,8 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     return cards
   }
 
-    async function play_card(gameName: string, card: Card<Type>) {
-    const cardPlayed = await server.play_card(gameName, card)
+    async function play_card(gameName: string, index: number) {
+    const cardPlayed = await server.play_card(gameName, index)
 
     // update discard pile
     if (cardPlayed) {
@@ -123,6 +123,18 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
 
         return broadcastDiscardPile(gameName, mappedCards);
       });
+
+      const currentPlayer = await server.get_current_player(gameName)
+        currentPlayer.process(async (player) => {
+        return broadcastCurrentPlayer(gameName, player.playerName)
+      });
+
+    // update player hands
+    const playerHands = await server.get_games_player_hands({ name: gameName })
+    await playerHands.process(hands => {
+      const subscriptionHands = hands.map(mapPlayerHandToSubscription)
+      return broadcastPlayerHands(gameName, subscriptionHands);
+    })
     }
 
     return cardPlayed

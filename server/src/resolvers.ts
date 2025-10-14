@@ -74,8 +74,9 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
         });
       },
       async play_card(_: any, params: { playCard: PlayCardDTO }) {
-        const card = mapCard({ type: params.playCard.type, color: params.playCard.color, digit: params.playCard.digit })
-        const res = await api.play_card(params.playCard.gameName, card);
+        console.log(params.playCard.gameName)
+        console.log(params.playCard.index)
+        const res = await api.play_card(params.playCard.gameName, params.playCard.index);
         return res.resolve({
           onSuccess: async cardPlayed => cardPlayed,
           onError: respond_with_error

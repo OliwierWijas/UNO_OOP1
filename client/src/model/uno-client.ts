@@ -169,21 +169,19 @@ export async function take_cards(gameName: string, playerName: string, numberOfC
   throw new Error("Server Error: " + response.error)
 }
 
-export async function play_card(gameName: string, color: string | null, digit: number | null, type: string): Promise<boolean> {
+export async function play_card(gameName: string, index: number): Promise<boolean> {
+  console.log(gameName)
+  console.log(index)
   const response = await mutate(gql`
-    mutation PlayCard($gameName: String!, $color: String, $digit: Int, $type: String!) {
+    mutation PlayCard($gameName: String!, $index: Int!) {
       play_card(playCard: {
         gameName: $gameName,
-        color: $color,
-        digit: $digit,
-        type: $type
+        index: $index,
       })
     }
   `, {
     gameName,
-    color,
-    digit,
-    type
+    index
   });
 
   return response.play_card === true;

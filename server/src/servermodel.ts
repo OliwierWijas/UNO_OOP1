@@ -40,9 +40,7 @@ export type PlayerHandSubscription = {
 
 export type PlayCardDTO = {
   gameName: string,
-  color: string,
-  digit: number,
-  type: string
+  index: number
 }
 
 export type DiscardPileSubscription = {
@@ -64,7 +62,7 @@ export interface GameStore {
   get_game_player_hands(gamesName : GamesNameDTO) :  Promise<ServerResponse<PlayerHand[], StoreError>>
   start_game(gamesName: GamesNameDTO): Promise<ServerResponse<Game, StoreError>>
   take_cards(gameName: string, playerName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>>
-  play_card(gameName: string, card: Card<Type>): Promise<ServerResponse<boolean, StoreError>>
+  play_card(gameName: string, index: number): Promise<ServerResponse<boolean, StoreError>>
   get_current_player(gameName: string): Promise<ServerResponse<PlayerHand, StoreError>>
   get_discard_pile(gameName: string): Promise<ServerResponse<DiscardPile, StoreError>>
 }
@@ -110,8 +108,8 @@ export class ServerModel {
     return cards
   }
 
-  async play_card(gameName: string, card: Card<Type>): Promise<ServerResponse<boolean, StoreError>> {
-    const cardPlayed = await this.store.play_card(gameName, card)
+  async play_card(gameName: string, index: number): Promise<ServerResponse<boolean, StoreError>> {
+    const cardPlayed = await this.store.play_card(gameName, index)
     return cardPlayed
   }
 

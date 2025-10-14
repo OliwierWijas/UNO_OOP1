@@ -62,7 +62,6 @@ function setupCurrentPlayerSubscription() {
 
 function setupDiscardPileSubscription() {
   api.onDiscardPileUpdated(gameName, (cards) => {
-    console.log(cards)
     const discardPile = createDiscardPile()
     discardPile.pile = cards
     discardPileStore.set(discardPile);
@@ -123,14 +122,10 @@ function handleCardDrawn(card: Card<Type>) {
 async function handleCardPlayed(payload: { cardIndex: number; card: Card<Type> }) {
   if (!gameStarted.value) return;
 
-  const { type } = payload.card;
-  const color = 'color' in payload.card ? payload.card.color : null;
-  const digit = type === 'NUMBERED' && 'number' in payload.card ? payload.card.number : null;
-
-  const canBePut = await api.play_card(gameName, color, digit, type)
+  const canBePut = await api.play_card(gameName, payload.cardIndex)
 
   if (!canBePut) {
-    currentRound.currentPlayer?.putCardBack(payload.card, payload.cardIndex);
+    playerHand.putCardBack(payload.card, payload.cardIndex);
   }
 }
 
