@@ -1,15 +1,17 @@
 import { ServerResponse } from "./response"
-import { CreateGameDTO, CreatePlayerHandDTO, GamesNameDTO, GameStore, ServerError } from "./servermodel"
+import { CreateGameDTO, CreatePlayerHandDTO, DiscardPileSubscription, GamesNameDTO, GameStore, PlayerHandSubscription, ServerError } from "./servermodel"
 import { ServerModel } from "./servermodel"
 import type { PlayerHand } from "domain/src/model/playerHand"
-import type { Game } from "domain/src/model/Game"
+import { type Game } from "domain/src/model/Game"
 import { Card } from "domain/src/model/card"
 import { Type } from "domain/src/model/types"
 
 export interface Broadcaster {
   sendPendingGames: (message: CreateGameDTO[]) => Promise<void>,
-  sendPlayerHands: (gameName: string, playerHands: PlayerHand[]) => Promise<void>
-  sendGameStarted: (gameName: string, game: Game) => Promise<void> 
+  sendPlayerHands: (gameName: string, playerHands: PlayerHandSubscription[]) => Promise<void>
+  sendGameStarted: (gameName: string, game: Game) => Promise<void>
+  sendCurrentPlayer: (gameName: string, playerName: string) => Promise<void>
+  sendDiscardPile(gameName: string, cards: DiscardPileSubscription[]): Promise<void>
 }
 
 export type API = {
@@ -19,7 +21,8 @@ export type API = {
   create_player_hand : (dto : CreatePlayerHandDTO)  => Promise<ServerResponse<PlayerHand, ServerError>>
   get_game_player_hands : (gameName: GamesNameDTO) => Promise<ServerResponse<PlayerHand[], ServerError>>
   start_game: (gameName: GamesNameDTO) => Promise<ServerResponse<Game, ServerError>>
-  take_cards: (gameName: string, number: number) => Promise<ServerResponse<Card<Type>[], ServerError>>
+  take_cards: (gameName: string, playerName: string, number: number) => Promise<ServerResponse<Card<Type>[], ServerError>>
+  play_card: (gameName: string, index: number) => Promise<ServerResponse<boolean, ServerError>>
 }
 
 export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
@@ -38,8 +41,17 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     broadcaster.sendPendingGames(games)
   }
 
-   const broadcastPlayerHands = async (gameName: string, playerHands: PlayerHand[]): Promise<void> => {
+  const broadcastPlayerHands = async (gameName: string, playerHands: PlayerHandSubscription[]): Promise<void> => {
     await broadcaster.sendPlayerHands(gameName, playerHands)
+  }
+
+  async function broadcastCurrentPlayer(gameName: string, playerName: string): Promise<void> {
+    broadcaster.sendCurrentPlayer(gameName, playerName)
+  }
+
+  async function broadcastDiscardPile(gameName: string, cards: DiscardPileSubscription[]): Promise<void> {
+    console.log(cards)
+    return broadcaster.sendDiscardPile(gameName, cards);
   }
   
   async function get_games() {
@@ -54,14 +66,18 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
 
   async function create_player_hand(dto : CreatePlayerHandDTO){
     const result = await server.create_player_hand(dto);
+
     const playerHands = await server.get_games_player_hands({ name: dto.gameName })
-    await playerHands.process(hands => broadcastPlayerHands(dto.gameName, hands))
+    await playerHands.process(hands => {
+      const subscriptionHands = hands.map(mapPlayerHandToSubscription)
+      return broadcastPlayerHands(dto.gameName, subscriptionHands);
+    })
   
     return result;
   }
 
   async function get_game_player_hands(gameName : GamesNameDTO){
-    const playerHands = await server.get_games_player_hands(gameName);
+    const playerHands = await server.get_games_player_hands({ name: gameName.name});
     return playerHands
   }
 
@@ -70,13 +86,58 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     result.process(async (game) => {
       await broadcaster.sendGameStarted(gameName.name, game);
     });
-    
+
+    const currentPlayer = await server.get_current_player(gameName.name)
+    currentPlayer.process(async (player) => {
+      return broadcastCurrentPlayer(gameName.name, player.playerName)
+    });
+
     return result;
   }
 
-  async function take_cards(gameName: string, number: number) {
-    const cards = await server.take_cards(gameName, number)
+  async function take_cards(gameName: string, playerName: string, number: number) {
+    const cards = await server.take_cards(gameName, playerName, number)
+
+    // update player hands
+    const playerHands = await server.get_games_player_hands({ name: gameName })
+    await playerHands.process(hands => {
+      const subscriptionHands = hands.map(mapPlayerHandToSubscription)
+      return broadcastPlayerHands(gameName, subscriptionHands);
+    })
+
     return cards
+  }
+
+    async function play_card(gameName: string, index: number) {
+    const cardPlayed = await server.play_card(gameName, index)
+
+    // update discard pile
+    if (cardPlayed) {
+      const discardPile = await server.get_discard_pile(gameName)
+      await discardPile.process(discardPile => {
+        const mappedCards: DiscardPileSubscription[] = discardPile.pile.map(card => ({
+          color: 'color' in card ? card.color : null,
+          digit: card.type === 'NUMBERED' ? card.number : null,
+          type: card.type
+        }));
+
+        return broadcastDiscardPile(gameName, mappedCards);
+      });
+
+      const currentPlayer = await server.get_current_player(gameName)
+        currentPlayer.process(async (player) => {
+        return broadcastCurrentPlayer(gameName, player.playerName)
+      });
+
+    // update player hands
+    const playerHands = await server.get_games_player_hands({ name: gameName })
+    await playerHands.process(hands => {
+      const subscriptionHands = hands.map(mapPlayerHandToSubscription)
+      return broadcastPlayerHands(gameName, subscriptionHands);
+    })
+    }
+
+    return cardPlayed
   }
 
   return {
@@ -86,6 +147,15 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     create_player_hand,
     get_game_player_hands,
     start_game,
-    take_cards
+    take_cards,
+    play_card
   }
+}
+
+export function mapPlayerHandToSubscription(hand: PlayerHand): PlayerHandSubscription {
+  return {
+    playerName: hand.playerName,
+    numberOfCards: hand.playerCards.length,
+    score: hand.score
+  };
 }

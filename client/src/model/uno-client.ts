@@ -4,12 +4,20 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
 import { type Game } from "domain/src/model/game";
 import { type PlayerHand } from "domain/src/model/playerHand";
-import type { Color, Digit, Type } from "domain/src/model/types";
+import type { Type } from "domain/src/model/types";
 import type { Card } from "domain/src/model/card";
+import { mapCard } from "domain/src/utils/card_mapper"
 
 export type SimpleGameDTO = {
   name: string
 }
+
+export type PlayerHandSubscription = {
+  playerName: string,
+  numberOfCards: number,
+  score: number
+}
+
 
 const wsLink = new GraphQLWsLink(createClient({
   url: 'ws://localhost:4000/graphql',
@@ -45,37 +53,6 @@ async function mutate(mutation: DocumentNode, variables?: Object): Promise<any> 
   const result = await apolloClient.mutate({ mutation, variables, fetchPolicy: 'network-only' })
   return result.data
 }
-
-function mapCard(card: { type: string; color?: string; digit?: number | null }): Card<Type> {
-  const type = card.type as Type;
-
-  switch (type) {
-    case 'NUMBERED':
-      if (card.color === undefined) throw new Error("Missing color for NUMBERED card");
-      if (card.digit === undefined || card.digit === null) throw new Error("Missing digit for NUMBERED card");
-      return {
-        type,
-        color: card.color as Color,
-        number: card.digit as Digit,
-      };
-    case 'SKIP':
-    case 'REVERSE':
-    case 'DRAW2':
-      if (card.color === undefined) throw new Error(`Missing color for ${type} card`);
-      return {
-        type,
-        color: card.color as Color,
-      };
-    case 'WILD':
-    case 'DRAW4':
-      return {
-        type,
-      };
-    default:
-      throw new Error(`Unknown card type: ${type}`);
-  }
-}
-
 
 //Queries
 export async function get_pending_games(): Promise<SimpleGameDTO[]> {
@@ -166,11 +143,12 @@ export async function start_game(gameName: string): Promise<Game> {
   return result as Game;
 }
 
-export async function take_cards(gameName: string, numberOfCards: number): Promise<Card<Type>[]> {
+export async function take_cards(gameName: string, playerName: string, numberOfCards: number): Promise<Card<Type>[]> {
   const response = await mutate(gql`
-    mutation TakeCards($gameName: String!, $numberOfCards: Int!) {
+    mutation TakeCards($gameName: String!, $playerName: String!, $numberOfCards: Int!) {
       take_cards(takeCardsDTO: {
         gameName: $gameName,
+        playerName: $playerName,
         numberOfCards: $numberOfCards
       }) {
         color
@@ -180,6 +158,7 @@ export async function take_cards(gameName: string, numberOfCards: number): Promi
     }
   `, {
     gameName,
+    playerName,
     numberOfCards
   });
 
@@ -187,7 +166,25 @@ export async function take_cards(gameName: string, numberOfCards: number): Promi
     return response.take_cards.map(mapCard);
   }
 
-  throw new Error("Server Error.")
+  throw new Error("Server Error: " + response.error)
+}
+
+export async function play_card(gameName: string, index: number): Promise<boolean> {
+  console.log(gameName)
+  console.log(index)
+  const response = await mutate(gql`
+    mutation PlayCard($gameName: String!, $index: Int!) {
+      play_card(playCard: {
+        gameName: $gameName,
+        index: $index,
+      })
+    }
+  `, {
+    gameName,
+    index
+  });
+
+  return response.play_card === true;
 }
 
 
@@ -214,13 +211,13 @@ export async function onPendingGamesUpdated(subscriber: (games: SimpleGameDTO[])
 
 export async function onGamePlayerHandsUpdated(
   gameName: string,
-  subscriber: (playerHands: PlayerHand[]) => void
+  subscriber: (playerHands: PlayerHandSubscription[]) => void
 ) {
   const gamePlayerHandsSubscription = gql`
     subscription GamePlayerHandsSubscription($gameName: String!) {
       game_player_hands_updated(gameName: $gameName) {
         playerName
-        cards
+        numberOfCards
         score
       }
     }
@@ -234,7 +231,7 @@ export async function onGamePlayerHandsUpdated(
   observable.subscribe({
     next({ data }) {
       if (data && data.game_player_hands_updated) {
-        const playerHands: PlayerHand[] = data.game_player_hands_updated;
+        const playerHands: PlayerHandSubscription[] = data.game_player_hands_updated;
         subscriber(playerHands);
       }
     },
@@ -276,6 +273,65 @@ export async function onGameStarted(
     },
     error(err: any) {
       console.error('Game started subscription error:', err);
+    }
+  });
+}
+
+export async function onCurrentPlayerUpdated(
+  gameName: string,
+  subscriber: (playerName: string) => void
+) {
+  const currentPlayerSubscription = gql`
+    subscription CurrentPlayerUpdated($gameName: String!) {
+      current_player_updated(gameName: $gameName)
+    }
+  `;
+
+  const observable = apolloClient.subscribe({
+    query: currentPlayerSubscription,
+    variables: { gameName }
+  });
+
+  observable.subscribe({
+    next({ data }) {
+      if (data && data.current_player_updated) {
+        subscriber(data.current_player_updated);
+      }
+    },
+    error(err) {
+      console.error("Current player subscription error:", err);
+    }
+  });
+}
+
+export async function onDiscardPileUpdated(
+  gameName: string,
+  subscriber: (cards: Card<Type>[]) => void
+) {
+  const discardPileSubscription = gql`
+    subscription DiscardPileUpdated($gameName: String!) {
+      discard_pile_updated(gameName: $gameName) {
+        color
+        digit
+        type
+      }
+    }
+  `;
+
+  const observable = apolloClient.subscribe({
+    query: discardPileSubscription,
+    variables: { gameName }
+  });
+
+  observable.subscribe({
+    next({ data }) {
+      if (data && data.discard_pile_updated) {
+        const cards = data.discard_pile_updated.map(mapCard);
+        subscriber(cards);
+      }
+    },
+    error(err: any) {
+      console.error("Discard pile subscription error:", err);
     }
   });
 }

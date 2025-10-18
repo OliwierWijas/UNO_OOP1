@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { Card } from 'domain/src/model/card';
-import { playerHand as createPlayerHand } from 'domain/src/model/playerHand';
+import { playerHand as createPlayerHand, type PlayerHand } from 'domain/src/model/playerHand';
 import { useRoute } from 'vue-router';
-import PlayerHand from './PlayerHand.vue';
+import PlayerHandComponent from './PlayerHand.vue';
 import OpponentHand from './OpponentHand.vue';
 import Deck from './Deck.vue';
 import DiscardPile from './DiscardPile.vue';
@@ -10,26 +10,25 @@ import TopInfoBar from './TopInfoBar.vue';
 import type { Type } from 'domain/src/model/types';
 import { reactive, onMounted, computed, ref } from 'vue';
 import { round as createRound } from 'domain/src/model/round';
-import { deck as createDeck } from 'domain/src/model/deck';
-import { discardPile as createDiscardPile } from 'domain/src/model/discardPile';
 import * as api from "../model/uno-client";
 import { usePlayerHandsStore } from '@/stores/PlayerHandsStore';
 import { useOngoingGamesStore } from "@/stores/OngoingGamesStore"
+import { useCurrentPlayerStore } from '@/stores/CurrentPlayerStore';
+import { useDiscardPileStore } from '@/stores/DiscardPileStore';
+import { discardPile as createDiscardPile } from "domain/src/model/discardPile"
 
 const route = useRoute();
 const playerHandsStore = usePlayerHandsStore();
 const ongoingGamesStore = useOngoingGamesStore();
+const currentPlayerStore = useCurrentPlayerStore()
+const discardPileStore = useDiscardPileStore();
 
 const gameName = (route.query.gameName as string) || 'DefaultGame';
 const playerName = (route.query.playerName as string) || 'Player';
 
-const gameDeck = createDeck();
-gameDeck.shuffle();
-
-const discardPile = reactive(createDiscardPile());
 const playerHand = reactive(createPlayerHand(playerName));
 const opponents = reactive<ReturnType<typeof createPlayerHand>[]>([]);
-const currentRound = reactive(createRound([playerHand, ...opponents], gameDeck));
+const currentRound = reactive(createRound([playerHand, ...opponents]));
 
 const isLoading = ref(false);
 const gameStarted = ref(false);
@@ -54,6 +53,21 @@ function setupGameStartedSubscription() {
   });
 }
 
+function setupCurrentPlayerSubscription() {
+  api.onCurrentPlayerUpdated(gameName, (playerName) => {
+    currentPlayerStore.set(playerName);
+    currentRound.currentPlayer = createPlayerHand(playerName)
+  });
+}
+
+function setupDiscardPileSubscription() {
+  api.onDiscardPileUpdated(gameName, (cards) => {
+    const discardPile = createDiscardPile()
+    discardPile.pile = cards
+    discardPileStore.set(discardPile);
+  });
+}
+
 function updatePlayerHands(playerHands: any[]) {
   opponents.length = 0;
   playerHands.forEach(hand => {
@@ -66,7 +80,10 @@ function updatePlayerHands(playerHands: any[]) {
     }
   });
   const allPlayers = [playerHand, ...opponents];
-  Object.assign(currentRound, createRound(allPlayers, gameDeck));
+
+  const currentPlayer = currentRound.currentPlayer
+  Object.assign(currentRound, createRound(allPlayers));
+  currentRound.currentPlayer = currentPlayer
 }
 
 async function startGame() {
@@ -86,7 +103,7 @@ async function startGame() {
 
 async function initializeGameComponents() {
   if (!hasTakenInitialCards) {
-    const cards = await api.take_cards(gameName, 7)
+    const cards = await api.take_cards(gameName, playerHand.playerName, 7)
     playerHand.takeCards(cards)
     hasTakenInitialCards = true
   }
@@ -96,14 +113,19 @@ async function initializeGameComponents() {
 
 function handleCardDrawn(card: Card<Type>) {
   if (!gameStarted.value) return;
-  playerHand.takeCards([card]);
+
+  if (card) {
+    playerHand.takeCards([card]);
+  }
 }
 
-function handleCardPlayed(payload: { cardIndex: number; card: Card<Type> }) {
+async function handleCardPlayed(payload: { cardIndex: number; card: Card<Type> }) {
   if (!gameStarted.value) return;
 
-  if (!currentRound.putCard(payload.card)) {
-    currentRound.currentPlayer?.putCardBack(payload.card, payload.cardIndex);
+  const canBePut = await api.play_card(gameName, payload.cardIndex)
+
+  if (!canBePut) {
+    playerHand.putCardBack(payload.card, payload.cardIndex);
   }
 }
 
@@ -111,7 +133,7 @@ async function loadInitialPlayerHands() {
   try {
     const initialPlayerHands = await api.get_game_player_hands(gameName);
     updatePlayerHands(initialPlayerHands);
-    playerHandsStore.update(initialPlayerHands);
+    playerHandsStore.update(initialPlayerHands.map(mapPlayerHandToSubscription));
 
     const ongoingGame = ongoingGamesStore.getGame(gameName);
     if (ongoingGame) {
@@ -123,16 +145,26 @@ async function loadInitialPlayerHands() {
   }
 }
 
+function mapPlayerHandToSubscription(hand: PlayerHand): api.PlayerHandSubscription {
+  return {
+    playerName: hand.playerName,
+    numberOfCards: hand.playerCards?.length,
+    score: hand.score
+  };
+}
+
 onMounted(async () => {
   await loadInitialPlayerHands();
   setupPlayerHandsSubscription();
   setupGameStartedSubscription();
+  setupCurrentPlayerSubscription();
+  setupDiscardPileSubscription();
 });
 </script>
 
 <template>
   <div class="game-container">
-    <TopInfoBar :players="[playerHand, ...opponents]" />
+    <TopInfoBar />
 
     <!-- Start Game Button (shown before game starts) -->
     <div v-if="!gameStarted" class="start-game-section">
@@ -190,11 +222,11 @@ onMounted(async () => {
       </template>
 
       <div class="center-area">
-        <DiscardPile :discardPile="discardPile" />
-        <Deck @card-drawn="handleCardDrawn" :deck="gameDeck" />
+        <DiscardPile />
+        <Deck @card-drawn="handleCardDrawn" :game-name="gameName" :player-name="playerName"/>
       </div>
 
-      <PlayerHand :playerHand="playerHand" @card-played="handleCardPlayed" />
+      <PlayerHandComponent :playerHand="playerHand" @card-played="handleCardPlayed" />
     </template>
   </div>
 </template>

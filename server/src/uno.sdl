@@ -10,6 +10,12 @@ type PlayerHand {
   score: Int
 }
 
+type PlayerHandSubscription {
+  playerName: String!
+  numberOfCards: Int
+  score: Int
+}
+
 type ReturnGameDTO {
   name: String!
 }
@@ -35,7 +41,13 @@ input GameNameDTO {
 
 input TakeCardsDTO {
   gameName: String!
+  playerName: String!
   numberOfCards: Int!
+}
+
+input PlayCardDTO {
+  gameName: String!
+  index: Int!
 }
 
 type Query {
@@ -49,10 +61,13 @@ type Mutation {
   create_player_hand(playerHand: CreatePlayerHandDTO!): PlayerHand!
   start_game(gameName: GameNameDTO!): Game!
   take_cards(takeCardsDTO: TakeCardsDTO!): [Card!]!
+  play_card(playCard: PlayCardDTO): Boolean!
 }
 
 type Subscription {
   pending_games_updated: [ReturnGameDTO!]!,
-  game_player_hands_updated(gameName: String!): [PlayerHand!]!
+  game_player_hands_updated(gameName: String!): [PlayerHandSubscription!]!
   game_started(gameName: String!): Game!
+  current_player_updated(gameName: String!): String!
+  discard_pile_updated(gameName: String!): [Card!]!
 }

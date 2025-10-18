@@ -1,7 +1,8 @@
 import { API } from "./api"
-import { CreateGameDTO, CreatePlayerHandDTO, GamesNameDTO, TakeCardsDTO } from "./servermodel"
+import { CreateGameDTO, CreatePlayerHandDTO, GamesNameDTO, PlayCardDTO, TakeCardsDTO } from "./servermodel"
 import { GraphQLError } from "graphql"
 import { PubSub } from "graphql-subscriptions"
+import { mapCard } from "domain/src/utils/card_mapper"
 
 async function respond_with_error(err: any): Promise<never> {
   throw new GraphQLError(err.type)
@@ -56,16 +57,28 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
         });
       },
       async take_cards(_: any, params: { takeCardsDTO: TakeCardsDTO }) {
-        const res = await api.take_cards(params.takeCardsDTO.gameName, params.takeCardsDTO.numberOfCards);
+        const res = await api.take_cards(
+          params.takeCardsDTO.gameName,
+          params.takeCardsDTO.playerName,
+          params.takeCardsDTO.numberOfCards
+        );
         return res.resolve({
-          onSuccess: async (cards) =>
-            cards.map(card => {
-              return {
-                color: 'color' in card ? card.color : null,
-                digit: card.type === 'NUMBERED' ? card.number : null,
-                type: card.type
-              };
-            }),
+          onSuccess: async (cards) => {
+            return cards.map(card => ({
+              color: 'color' in card ? card.color : null,
+              digit: card.type === 'NUMBERED' ? card.number : null,
+              type: card.type
+            }));
+          },
+          onError: respond_with_error
+        });
+      },
+      async play_card(_: any, params: { playCard: PlayCardDTO }) {
+        console.log(params.playCard.gameName)
+        console.log(params.playCard.index)
+        const res = await api.play_card(params.playCard.gameName, params.playCard.index);
+        return res.resolve({
+          onSuccess: async cardPlayed => cardPlayed,
           onError: respond_with_error
         });
       },
@@ -87,7 +100,19 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
         subscribe: (_: any, params: { gameName: string }) => 
           pubsub.asyncIterableIterator([`GAME_STARTED_${params.gameName}`]),
         resolve: (payload: any) => payload.game
-      }
+      },
+
+      current_player_updated: {
+        subscribe: (_: any, { gameName }: { gameName: string }) =>
+          pubsub.asyncIterableIterator([`CURRENT_PLAYER_${gameName}`]),
+        resolve: (payload: any) => payload.playerName
+      },
+
+      discard_pile_updated: {
+        subscribe: (_: any, { gameName }: { gameName: string }) =>
+          pubsub.asyncIterableIterator([`DISCARD_PILE_${gameName}`]),
+        resolve: (payload: any) => payload.cards 
+      },
     }
   }
 }

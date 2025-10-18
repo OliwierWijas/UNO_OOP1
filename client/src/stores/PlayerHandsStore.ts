@@ -1,12 +1,12 @@
 import { computed, reactive, type Reactive } from 'vue'
 import { defineStore } from 'pinia'
-import type { PlayerHand } from 'domain/src/model/playerHand'
+import type { PlayerHandSubscription } from '@/model/uno-client'
 
 export const usePlayerHandsStore = defineStore('player hands', () => {
-  const playerHandsList = reactive<PlayerHand[]>([])
-  const playerHands = computed((): Reactive<Readonly<PlayerHand[]>> => playerHandsList)
+  const playerHandsList = reactive<PlayerHandSubscription[]>([])
+  const playerHands = computed((): Reactive<Readonly<PlayerHandSubscription[]>> => playerHandsList)
 
-  const update = (hands: PlayerHand[]) => {
+  const update = (hands: PlayerHandSubscription[]) => {
     playerHandsList.length = 0
     playerHandsList.push(...hands)
   }

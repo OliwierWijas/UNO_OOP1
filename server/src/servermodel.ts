@@ -1,8 +1,9 @@
 import { Card } from "domain/src/model/card"
 import { ServerResponse } from "./response"
-import type { Game } from "domain/src/model/Game"
+import { game, type Game } from "domain/src/model/Game"
 import { type PlayerHand } from "domain/src/model/playerHand"
 import { Type } from "domain/src/model/types"
+import { DiscardPile } from "domain/src/model/discardPile"
 
 export type CreateGameDTO = {
   name: string
@@ -19,6 +20,7 @@ export type CreatePlayerHandDTO = {
 
 export type TakeCardsDTO = {
   gameName: string,
+  playerName: string,
   numberOfCards: number
 }
 
@@ -28,6 +30,23 @@ export type PendingGame = {
   number_of_players: number
   players: string[]
   readonly pending: true
+}
+
+export type PlayerHandSubscription = {
+  playerName: string,
+  numberOfCards: number,
+  score: number
+}
+
+export type PlayCardDTO = {
+  gameName: string,
+  index: number
+}
+
+export type DiscardPileSubscription = {
+  color: string | null,
+  digit: number | null,
+  type: string
 }
 
 export type StoreError = { type: 'Not Found', key: any } | { type: 'DB Error', error: any } | { type: 'Game has too much Players', key: any }
@@ -42,7 +61,10 @@ export interface GameStore {
   create_player_hand(playerHand : CreatePlayerHandDTO): Promise<ServerResponse<PlayerHand, StoreError>>
   get_game_player_hands(gamesName : GamesNameDTO) :  Promise<ServerResponse<PlayerHand[], StoreError>>
   start_game(gamesName: GamesNameDTO): Promise<ServerResponse<Game, StoreError>>
-  take_cards(gameName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>>
+  take_cards(gameName: string, playerName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>>
+  play_card(gameName: string, index: number): Promise<ServerResponse<boolean, StoreError>>
+  get_current_player(gameName: string): Promise<ServerResponse<PlayerHand, StoreError>>
+  get_discard_pile(gameName: string): Promise<ServerResponse<DiscardPile, StoreError>>
 }
 
 export class ServerModel {
@@ -72,7 +94,7 @@ export class ServerModel {
   }
 
    async get_games_player_hands(dto : GamesNameDTO) {
-    var playerHands = this.store.get_game_player_hands(dto)
+    var playerHands = await this.store.get_game_player_hands(dto)
     return playerHands
   }
 
@@ -81,8 +103,23 @@ export class ServerModel {
   return result;
   }
 
-  async take_cards(gameName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>> {
-    const cards = await this.store.take_cards(gameName, number)
+  async take_cards(gameName: string, playerName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>> {
+    const cards = await this.store.take_cards(gameName, playerName, number)
     return cards
+  }
+
+  async play_card(gameName: string, index: number): Promise<ServerResponse<boolean, StoreError>> {
+    const cardPlayed = await this.store.play_card(gameName, index)
+    return cardPlayed
+  }
+
+  async get_current_player(gameName: string): Promise<ServerResponse<PlayerHand, StoreError>> {
+    const currentPlayer = await this.store.get_current_player(gameName)
+    return currentPlayer
+  }
+
+  async get_discard_pile(gameName: string): Promise<ServerResponse<DiscardPile, StoreError>> {
+    const discardPile = await this.store.get_discard_pile(gameName)
+    return discardPile
   }
 }

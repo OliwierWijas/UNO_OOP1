@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import { type PropType } from 'vue';
-import type { PlayerHand } from 'domain/src/model/playerHand';
+import { useCurrentPlayerStore } from '@/stores/CurrentPlayerStore';
+import { usePlayerHandsStore } from '@/stores/PlayerHandsStore'
 
-const props = defineProps({
-  players: {
-    type: Array as PropType<PlayerHand[]>,
-    required: true
-  },
-});
+const playerHandsStore = usePlayerHandsStore();
+const currentPlayerStore = useCurrentPlayerStore()
+
 </script>
 
 <template>
@@ -16,15 +13,18 @@ const props = defineProps({
         <!-- add round number as paramiter later -->
       Round 1
     </div>
+    <div class="round">
+      Current player: {{ currentPlayerStore.currentPlayer }}
+    </div>
     <div class="players-row">
       <div
-        v-for="(player, index) in players"
-        :key="index"
+        v-for="hand in playerHandsStore.playerHands"
+        :key="hand.playerName"
         class="player-container"
       >
-        <div class="name">{{ player.playerName }}</div>
-        <div class="score">Score: {{ player.score }}</div>
-        <div class="cards-number">Cards: {{ player.playerCards.length }}</div>
+        <div class="name">{{ hand.playerName }}</div>
+        <div class="score">Score: {{ hand.score }}</div>
+        <div class="cards-number">Cards: {{ hand.numberOfCards }}</div>
       </div>
     </div>
   </div>

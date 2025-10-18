@@ -14,7 +14,6 @@ export interface Game {
   startGame(deck: Deck): void
   joinGame(playerHand: PlayerHand): void
   nextRound(deck: Deck): PlayerHand | undefined
-  getCurrentRound(): Round
 }
 
 export function game(name: string): Game {
@@ -29,7 +28,8 @@ export function game(name: string): Game {
       if (this.playerHands.length < 2) 
         throw new Error("Too less players.")
 
-      const firstRound = round(this.playerHands, deck)
+      const firstRound = round(this.playerHands)
+      firstRound.deck = deck
       this.rounds.push(firstRound)
       this.currentRound = firstRound
       this.state = "STARTED"
@@ -57,7 +57,8 @@ export function game(name: string): Game {
                   p.resetCards()
               });
               
-              const nextRound = round(this.playerHands, deck);
+              const nextRound = round(this.playerHands);
+              nextRound.deck = deck
               this.rounds.push(nextRound);
               this.currentRound = nextRound;
           }
@@ -68,9 +69,5 @@ export function game(name: string): Game {
           throw new Error("The game is not in started state.")
       }
     },
-
-    getCurrentRound() {
-      return this.rounds[this.rounds.length - 1]
-    }
   }
 }

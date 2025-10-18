@@ -2,10 +2,11 @@
 import type { Card } from 'domain/src/model/card';
 import type { Type } from 'domain/src/model/types';
 import deckImg from '@/components/images/Back_Card.png';
-import type { Deck } from 'domain/src/model/deck';
+import * as api from "../model/uno-client";
 
 const props = defineProps<{
-  deck: Deck
+  gameName: string,
+  playerName: string
 }>();
 
 const emit = defineEmits<{
@@ -13,14 +14,11 @@ const emit = defineEmits<{
 }>();
 
 
-function drawCard() {
-  const cards = props.deck.drawCards(1);
-  if (cards.length > 0) {
-    const drawn = cards[0];
-    emit('card-drawn', drawn);
-    return drawn;
-  }
-  return undefined;
+async function drawCard() {
+  const card = await api.take_cards(props.gameName, props.playerName, 1)
+  const drawn = card[0];
+  emit('card-drawn', drawn);
+  return drawn;
 }
 </script>
 
