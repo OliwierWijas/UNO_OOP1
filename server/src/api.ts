@@ -5,6 +5,7 @@ import type { PlayerHand } from "domain/src/model/playerHand"
 import { type Game } from "domain/src/model/Game"
 import { Card } from "domain/src/model/card"
 import { Type } from "domain/src/model/types"
+import { Round } from "domain/src/model/round"
 
 export interface Broadcaster {
   sendPendingGames: (message: CreateGameDTO[]) => Promise<void>,
@@ -12,6 +13,8 @@ export interface Broadcaster {
   sendGameStarted: (gameName: string, game: Game) => Promise<void>
   sendCurrentPlayer: (gameName: string, playerName: string) => Promise<void>
   sendDiscardPile(gameName: string, cards: DiscardPileSubscription[]): Promise<void>
+  sendRoundWon: (gameName: string, round: Round) => Promise<void>;
+
 }
 
 export type API = {
@@ -23,6 +26,7 @@ export type API = {
   start_game: (gameName: GamesNameDTO) => Promise<ServerResponse<Game, ServerError>>
   take_cards: (gameName: string, playerName: string, number: number) => Promise<ServerResponse<Card<Type>[], ServerError>>
   play_card: (gameName: string, index: number) => Promise<ServerResponse<boolean, ServerError>>
+  round_won: (gameName: string) => Promise<ServerResponse<void, ServerError>>;
 }
 
 export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
@@ -140,6 +144,30 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     return cardPlayed
   }
 
+async function round_won(gameName: string): Promise<ServerResponse<void, ServerError>> {
+  const gamesRes = await server.get_games();
+
+  return gamesRes.flatMap(async (all) => {
+    const game = all.find((g: any) => g.name === gameName);
+    if (!game || !game.currentRound) {
+      return ServerResponse.error<ServerError>({ type: "Not Found", key: gameName });
+    }
+
+    const round = game.currentRound;
+    const result = await server.round_won(gameName, round);
+
+    await result.process(async () => {
+      await broadcaster.sendRoundWon(gameName, round);
+    });
+
+    // simply cast StoreError → ServerError
+    return result as unknown as ServerResponse<void, ServerError>;
+  });
+}
+
+
+
+
   return {
     create_game,
     get_pending_games,
@@ -148,7 +176,8 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
     get_game_player_hands,
     start_game,
     take_cards,
-    play_card
+    play_card,
+    round_won
   }
 }
 

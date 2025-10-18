@@ -82,6 +82,34 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
           onError: respond_with_error
         });
       },
+      async round_won(_: any, params: { gameName: string }) {
+        const res = await api.round_won(params.gameName);
+
+        return res.resolve({
+          onSuccess: async () => {
+            const gamesRes = await api.get_games();
+
+            return gamesRes.resolve({
+              onSuccess: async (all) => {
+                const g = all.find((g: any) => g.name === params.gameName);
+                const round = g?.currentRound;
+                return {
+                  isFinished: round?.isFinished ?? true,
+                  winner: round?.currentPlayer?.playerName ?? "Unknown",
+                  winnerScore: round?.currentPlayer?.score ?? 0
+                };
+              },
+              onError: async (_error) => ({
+                isFinished: true,
+                winner: "Unknown",
+                winnerScore: 0
+              })
+            });
+          },
+          onError: respond_with_error
+        });
+      }
+
     },
 
     Subscription: {
@@ -113,6 +141,11 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
           pubsub.asyncIterableIterator([`DISCARD_PILE_${gameName}`]),
         resolve: (payload: any) => payload.cards 
       },
+      round_won: {
+        subscribe: (_: any, params: { gameName: string }) =>
+          pubsub.asyncIterableIterator([`ROUND_WON_${params.gameName}`]),
+        resolve: (payload: any) => payload
+      }
     }
   }
 }

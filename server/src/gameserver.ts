@@ -15,6 +15,7 @@ import { create_resolvers } from './resolvers'
 import { readFileSync } from 'fs'
 import { CreateGameDTO, DiscardPileSubscription, PlayerHandSubscription } from './servermodel'
 import type { Game } from 'domain/src/model/game'
+import { Round } from 'domain/src/model/round'
 
 const typeDefs = readFileSync('./src/uno.sdl', 'utf8')
 
@@ -36,6 +37,13 @@ async function startServer() {
     },
     async sendDiscardPile(gameName: string, cards: DiscardPileSubscription[]): Promise<void> {
       await pubsub.publish(`DISCARD_PILE_${gameName}`, { cards });
+    },
+    async sendRoundWon(gameName: string, round: Round) {
+      await pubsub.publish(`ROUND_WON_${gameName}`, {
+        isFinished: round.isFinished,
+        winner: round.currentPlayer?.playerName,
+        winnerScore: round.currentPlayer?.score
+      });
     }
   }
   const api = create_api(broadcaster, store)

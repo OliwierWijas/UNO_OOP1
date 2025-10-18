@@ -187,6 +187,19 @@ export async function play_card(gameName: string, index: number): Promise<boolea
   return response.play_card === true;
 }
 
+export async function round_won(gameName: string): Promise<{ isFinished: boolean; winner: string; winnerScore: number }> {
+  const response = await mutate(gql`
+    mutation RoundWon($gameName: String!) {
+      round_won(gameName: $gameName) {
+        isFinished
+        winner
+        winnerScore
+      }
+    }
+  `, { gameName });
+  return response.round_won;
+}
+
 
 // Subscriptions
 export async function onPendingGamesUpdated(subscriber: (games: SimpleGameDTO[]) => void) {
@@ -333,5 +346,34 @@ export async function onDiscardPileUpdated(
     error(err: any) {
       console.error("Discard pile subscription error:", err);
     }
+  });
+}
+
+export async function onRoundWon(
+  gameName: string,
+  subscriber: (data: { isFinished: boolean; winner: string; winnerScore: number }) => void
+) {
+  const roundWonSubscription = gql`
+    subscription RoundWonSubscription($gameName: String!) {
+      round_won(gameName: $gameName) {
+        isFinished
+        winner
+        winnerScore
+      }
+    }
+  `;
+
+  const observable = apolloClient.subscribe({
+    query: roundWonSubscription,
+    variables: { gameName },
+  });
+
+  observable.subscribe({
+    next({ data }) {
+      if (data && data.round_won) subscriber(data.round_won);
+    },
+    error(err: any) {
+      console.error("Round won subscription error:", err);
+    },
   });
 }
