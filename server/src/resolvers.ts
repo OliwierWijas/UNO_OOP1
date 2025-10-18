@@ -69,6 +69,14 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
           onError: respond_with_error
         });
       },
+
+      async round_won(_: any, params: { gameName: GamesNameDTO }) {
+      const res = await api.round_won(params.gameName.name)
+      return res.resolve({
+        onSuccess: async payload => payload,
+        onError: respond_with_error
+      })
+    }
     },
 
     Subscription: {
@@ -87,7 +95,13 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
         subscribe: (_: any, params: { gameName: string }) => 
           pubsub.asyncIterableIterator([`GAME_STARTED_${params.gameName}`]),
         resolve: (payload: any) => payload.game
-      }
+      },
+
+      round_won: {
+        subscribe: (_: any, params: { gameName: string }) =>
+          pubsub.asyncIterableIterator([`ROUND_WON_${params.gameName}`]),
+        resolve: (payload: any) => payload
+  }
     }
   }
 }

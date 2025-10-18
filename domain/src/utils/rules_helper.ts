@@ -72,11 +72,9 @@ export class RulesHelper {
   }
 
   static checkIfAnyoneHasScore500(currentRound: Round): PlayerHand | undefined {
-    currentRound.playerHands.forEach(p => {
-      if (p.score >= 500)
-        return p
-    })
-
-    return undefined
+  for (const p of currentRound.playerHands) {
+    if (p.score >= 500) return p
   }
+  return undefined
+}
 }

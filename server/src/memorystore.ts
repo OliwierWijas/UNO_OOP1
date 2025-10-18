@@ -5,6 +5,7 @@ import { playerHand, type PlayerHand } from "domain/src/model/playerHand"
 import { deck } from "domain/src/model/deck"
 import { Card } from "domain/src/model/card"
 import { Type } from "domain/src/model/types"
+import { RoundWon } from "./servermodel"
 
 const not_found = (key: any): StoreError => ({ type: 'Not Found', key })
 
@@ -89,4 +90,22 @@ export class MemoryStore implements GameStore {
 
     return ServerResponse.ok(cards)
   }
+  async round_won(gameName: string): Promise<ServerResponse<RoundWon, StoreError>> {
+  const targetGame = this._games.find(g => g.name === gameName)
+  if (!targetGame) return ServerResponse.error(not_found(gameName))
+
+  // Snapshot the current round BEFORE advancing
+  const current = targetGame.getCurrentRound()
+  const payload: RoundWon = {
+    isFinished: current.isFinished,
+    winner: current.currentPlayer?.playerName ?? "",
+    winnerScore: current.currentPlayer?.score ?? 0
+  }
+
+  // Now create the next round or end the game depending on totals
+  const newDeck = deck()
+  targetGame.nextRound(newDeck)
+
+  return ServerResponse.ok(payload)
+}
 }

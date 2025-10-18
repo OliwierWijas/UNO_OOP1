@@ -3,6 +3,7 @@ import { ServerResponse } from "./response"
 import type { Game } from "domain/src/model/Game"
 import { type PlayerHand } from "domain/src/model/playerHand"
 import { Type } from "domain/src/model/types"
+import { type Round } from "domain/src/model/round"
 
 export type CreateGameDTO = {
   name: string
@@ -30,6 +31,12 @@ export type PendingGame = {
   readonly pending: true
 }
 
+export type RoundWon = {
+  isFinished: boolean
+  winner: string
+  winnerScore: number
+}
+
 export type StoreError = { type: 'Not Found', key: any } | { type: 'DB Error', error: any } | { type: 'Game has too much Players', key: any }
 export type ServerError = { type: 'Forbidden' } | StoreError
 
@@ -43,6 +50,7 @@ export interface GameStore {
   get_game_player_hands(gamesName : GamesNameDTO) :  Promise<ServerResponse<PlayerHand[], StoreError>>
   start_game(gamesName: GamesNameDTO): Promise<ServerResponse<Game, StoreError>>
   take_cards(gameName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>>
+  round_won(gameName: string): Promise<ServerResponse<RoundWon, StoreError>>
 }
 
 export class ServerModel {
@@ -85,4 +93,9 @@ export class ServerModel {
     const cards = await this.store.take_cards(gameName, number)
     return cards
   }
+
+  async round_won(gameName: string): Promise<ServerResponse<RoundWon, StoreError>> {
+    return this.store.round_won(gameName)
+  }
+
 }
