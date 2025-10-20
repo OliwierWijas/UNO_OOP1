@@ -7,6 +7,7 @@ import OpponentHand from './OpponentHand.vue';
 import Deck from './Deck.vue';
 import DiscardPile from './DiscardPile.vue';
 import TopInfoBar from './TopInfoBar.vue';
+import RoundWinnerPopup from './RoundWinnerPopup.vue';
 import type { Type } from 'domain/src/model/types';
 import { reactive, onMounted, computed, ref } from 'vue';
 import { round as createRound } from 'domain/src/model/round';
@@ -37,6 +38,8 @@ let hasTakenInitialCards = false
 const canStartGame = computed(() => {
   return playerHandsStore.playerHands.length > 1 && !gameStarted.value;
 });
+
+const roundWinner = ref<{ winner: string; score: number } | null>(null);
 
 function setupPlayerHandsSubscription() {
   api.onGamePlayerHandsUpdated(gameName, (playerHands) => {
@@ -72,18 +75,20 @@ function updatePlayerHands(playerHands: any[]) {
   opponents.length = 0;
   playerHands.forEach(hand => {
     if (hand.playerName === playerName) {
-      Object.assign(playerHand, hand);
+      // update mutable state, do NOT overwrite getters
+      playerHand.playerCards = hand.playerCards;
+      // if you have any mutable field like "name", update it
+      // playerHand.name = hand.playerName
     } else {
       const opponent = createPlayerHand(hand.playerName);
-      Object.assign(opponent, hand);
+      opponent.playerCards = hand.playerCards; // only update mutable
       opponents.push(opponent);
     }
   });
   const allPlayers = [playerHand, ...opponents];
-
-  const currentPlayer = currentRound.currentPlayer
+  const currentPlayer = currentRound.currentPlayer;
   Object.assign(currentRound, createRound(allPlayers));
-  currentRound.currentPlayer = currentPlayer
+  currentRound.currentPlayer = currentPlayer;
 }
 
 async function startGame() {
@@ -103,7 +108,7 @@ async function startGame() {
 
 async function initializeGameComponents() {
   if (!hasTakenInitialCards) {
-    const cards = await api.take_cards(gameName, playerHand.playerName, 7)
+    const cards = await api.take_cards(gameName, playerHand.playerName, 1)
     playerHand.takeCards(cards)
     hasTakenInitialCards = true
   }
@@ -153,17 +158,54 @@ function mapPlayerHandToSubscription(hand: PlayerHand): api.PlayerHandSubscripti
   };
 }
 
+function setupRoundWonSubscription() {
+  console.log("the on round here")
+  api.onRoundWon(gameName, (data) => {
+    console.log(data)
+    if (data.isFinished) {
+      console.log(data)
+      roundWinner.value = { winner: data.winner, score: data.winnerScore };
+    }
+  });
+}
+
+async function startNextRound() {
+  if (!roundWinner.value) return;
+
+  try {
+    // Call round_won again to advance the round (or a dedicated "nextRound" mutation if you add it)
+    await api.round_won(gameName);
+
+    // Reset popup
+    roundWinner.value = null;
+
+    // Re-fetch player hands for the new round
+    const initialPlayerHands = await api.get_game_player_hands(gameName);
+    updatePlayerHands(initialPlayerHands);
+  } catch (err) {
+    console.error('Failed to start next round:', err);
+  }
+}
+
 onMounted(async () => {
   await loadInitialPlayerHands();
   setupPlayerHandsSubscription();
   setupGameStartedSubscription();
   setupCurrentPlayerSubscription();
   setupDiscardPileSubscription();
+  setupRoundWonSubscription();
 });
 </script>
 
 <template>
   <div class="game-container">
+    <RoundWinnerPopup
+      v-if="roundWinner"
+      :winner="roundWinner.winner"
+      :score="roundWinner.score"
+      @next-round="startNextRound"
+    />
+    
     <TopInfoBar />
 
     <!-- Start Game Button (shown before game starts) -->
