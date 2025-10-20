@@ -16,6 +16,7 @@ import { readFileSync } from 'fs'
 import { CreateGameDTO, DiscardPileSubscription, PlayerHandSubscription } from './servermodel'
 import type { Game } from 'domain/src/model/game'
 import { Round } from 'domain/src/model/round'
+import { RulesHelper } from 'domain/src/utils/rules_helper'
 
 const typeDefs = readFileSync('./src/uno.sdl', 'utf8')
 
@@ -39,12 +40,19 @@ async function startServer() {
       await pubsub.publish(`DISCARD_PILE_${gameName}`, { cards });
     },
     async sendRoundWon(gameName: string, round: Round) {
-      await pubsub.publish(`ROUND_WON_${gameName}`, {
-        isFinished: round.isFinished,
-        winner: round.currentPlayer?.playerName,
-        winnerScore: round.currentPlayer?.score
-      });
-    }
+  // Find the player with 0 cards
+  const winnerPlayer = round.playerHands.find(p => p.playerCards.length === 0);
+  
+  // Calculate score of remaining cards
+  const remainingPlayers = round.playerHands.filter(p => p.playerCards.length > 0);
+  const winnerScore = RulesHelper.calculateScore(remainingPlayers);
+
+  await pubsub.publish(`ROUND_WON_${gameName}`, {
+    isFinished: !!winnerPlayer,
+    winner: winnerPlayer?.playerName ?? "Unknown",
+    winnerScore: winnerScore
+  });
+}
   }
   const api = create_api(broadcaster, store)
 
