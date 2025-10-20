@@ -3,6 +3,7 @@ import { CreateGameDTO, CreatePlayerHandDTO, GamesNameDTO, PlayCardDTO, TakeCard
 import { GraphQLError } from "graphql"
 import { PubSub } from "graphql-subscriptions"
 import { mapCard } from "domain/src/utils/card_mapper"
+import { RulesHelper } from "domain/src/utils/rules_helper"
 
 async function respond_with_error(err: any): Promise<never> {
   throw new GraphQLError(err.type)
@@ -82,6 +83,7 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
           onError: respond_with_error
         });
       },
+
       async round_won(_: any, params: { gameName: string }) {
         const res = await api.round_won(params.gameName);
 
@@ -92,15 +94,28 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
             return gamesRes.resolve({
               onSuccess: async (all) => {
                 const g = all.find((g: any) => g.name === params.gameName);
-                const round = g?.currentRound;
+                if (!g || !g.currentRound) {
+                  return { isFinished: false, winner: "Unknown", winnerScore: 0 };
+                }
+
+                const round = g.currentRound;
+
+                // find player with 0 cards
+                const winnerPlayer = round.playerHands.find((p: any) => p.playerCards.length === 0);
+
+                // calculate score of remaining cards in all other players’ hands
+                const winnerScore = winnerPlayer
+                  ? RulesHelper.calculateScore(round.playerHands.filter((p: any) => p !== winnerPlayer))
+                  : 0;
+
                 return {
-                  isFinished: round?.isFinished ?? true,
-                  winner: round?.currentPlayer?.playerName ?? "Unknown",
-                  winnerScore: round?.currentPlayer?.score ?? 0
+                  isFinished: !!winnerPlayer,
+                  winner: winnerPlayer?.playerName ?? "Unknown",
+                  winnerScore: winnerScore
                 };
               },
               onError: async (_error) => ({
-                isFinished: true,
+                isFinished: false,
                 winner: "Unknown",
                 winnerScore: 0
               })

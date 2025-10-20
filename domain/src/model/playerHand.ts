@@ -25,7 +25,9 @@ export function playerHand(name: string): PlayerHand {
       return playerCards.value;
     },
 
-    score: score,
+    get score() {
+      return score;
+    },
 
     putCardBack(card: Card<Type>, index: number): void {
       if (index < 0) index = 0;
