@@ -6,6 +6,7 @@ import { deck } from "domain/src/model/deck"
 import { Card } from "domain/src/model/card"
 import { Type } from "domain/src/model/types"
 import { DiscardPile } from "domain/src/model/discardPile"
+import { Round } from "domain/src/model/round"
 
 const not_found = (key: any): StoreError => ({ type: 'Not Found', key })
 
@@ -154,5 +155,24 @@ export class MemoryStore implements GameStore {
     const discardPile = currentRound.discardPile
 
     return ServerResponse.ok(discardPile);
+  }
+
+   async round_won(gameName: string, round: Round): Promise<ServerResponse<void, StoreError>> {
+    const targetGame = this._games.find((g) => g.name === gameName);
+    if (!targetGame) {
+      return ServerResponse.error(not_found(gameName));
+    }
+
+    const newDeck = deck();
+
+    // This triggers next round logic — handled by domain/game.ts
+    const winner = targetGame.nextRound(newDeck);
+
+    // Optionally log or handle the winner
+    if (winner) {
+      console.log(`🎉 Round won by ${winner.playerName} with score ${winner.score}`);
+    }
+
+    return ServerResponse.ok(undefined);
   }
 }

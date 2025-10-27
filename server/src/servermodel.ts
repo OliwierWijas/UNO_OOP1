@@ -4,6 +4,7 @@ import { game, type Game } from "domain/src/model/Game"
 import { type PlayerHand } from "domain/src/model/playerHand"
 import { Type } from "domain/src/model/types"
 import { DiscardPile } from "domain/src/model/discardPile"
+import { Round } from "domain/src/model/round"
 
 export type CreateGameDTO = {
   name: string
@@ -65,6 +66,7 @@ export interface GameStore {
   play_card(gameName: string, index: number): Promise<ServerResponse<boolean, StoreError>>
   get_current_player(gameName: string): Promise<ServerResponse<PlayerHand, StoreError>>
   get_discard_pile(gameName: string): Promise<ServerResponse<DiscardPile, StoreError>>
+  round_won(gameName: string, round: Round): Promise<ServerResponse<void, StoreError>>;
 }
 
 export class ServerModel {
@@ -121,5 +123,9 @@ export class ServerModel {
   async get_discard_pile(gameName: string): Promise<ServerResponse<DiscardPile, StoreError>> {
     const discardPile = await this.store.get_discard_pile(gameName)
     return discardPile
+  }
+
+  async round_won(gameName: string, round: Round) {
+    return this.store.round_won(gameName, round);
   }
 }

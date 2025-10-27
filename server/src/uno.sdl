@@ -56,12 +56,19 @@ type Query {
   get_game_player_hands(gameName: GameNameDTO!): [PlayerHand!]!
 }
 
+type RoundWon {
+  isFinished: Boolean!
+  winner: String!
+  winnerScore: Int!
+}
+
 type Mutation {
   create_game(game: CreateGameDTO) : ReturnGameDTO
   create_player_hand(playerHand: CreatePlayerHandDTO!): PlayerHand!
   start_game(gameName: GameNameDTO!): Game!
   take_cards(takeCardsDTO: TakeCardsDTO!): [Card!]!
   play_card(playCard: PlayCardDTO): Boolean!
+  round_won(gameName: String!): RoundWon!
 }
 
 type Subscription {
@@ -70,4 +77,5 @@ type Subscription {
   game_started(gameName: String!): Game!
   current_player_updated(gameName: String!): String!
   discard_pile_updated(gameName: String!): [Card!]!
+  round_won(gameName: String!): RoundWon!
 }
