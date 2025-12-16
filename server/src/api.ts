@@ -179,8 +179,7 @@ async function round_won(gameName: string): Promise<ServerResponse<void, ServerE
     await result.process(async () => {
       await broadcaster.sendRoundWon(gameName, round);
     });
-
-    // simply cast StoreError → ServerError
+    
     return result as unknown as ServerResponse<void, ServerError>;
   });
 }

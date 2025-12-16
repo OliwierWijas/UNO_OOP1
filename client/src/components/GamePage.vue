@@ -75,9 +75,7 @@ function updatePlayerHands(playerHands: any[]) {
   opponents.length = 0;
   playerHands.forEach(hand => {
     if (hand.playerName === playerName) {
-      // update mutable state, do NOT overwrite getters
       playerHand.playerCards = hand.playerCards;
-      // if you have any mutable field like "name", update it
       // playerHand.name = hand.playerName
     } else {
       const opponent = createPlayerHand(hand.playerName);
@@ -173,13 +171,12 @@ async function startNextRound() {
   if (!roundWinner.value) return;
 
   try {
-    // Call round_won again to advance the round (or a dedicated "nextRound" mutation if you add it)
     await api.round_won(gameName);
 
     // Reset popup
     roundWinner.value = null;
 
-    // Re-fetch player hands for the new round
+    // ree-fetch player hands for the new round
     const initialPlayerHands = await api.get_game_player_hands(gameName);
     updatePlayerHands(initialPlayerHands);
   } catch (err) {
@@ -208,7 +205,6 @@ onMounted(async () => {
     
     <TopInfoBar />
 
-    <!-- Start Game Button (shown before game starts) -->
     <div v-if="!gameStarted" class="start-game-section">
       <div class="waiting-message">
         <h2>Waiting to Start Game: {{ gameName }}</h2>

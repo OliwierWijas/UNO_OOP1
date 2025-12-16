@@ -31,12 +31,12 @@ export class RulesHelper {
     // Rules by card type
     switch (topCard.type) {
       case 'NUMBERED':
-        // Numbered: match by number
+        // match by number
         return chosenCard.type === 'NUMBERED' && chosenCard.number === topCard.number
 
       case 'SKIP':
       case 'REVERSE':
-        // Action: match by type
+        // match by type
         return chosenCard.type === topCard.type
     }
 

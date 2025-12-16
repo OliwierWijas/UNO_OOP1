@@ -10,8 +10,7 @@ const currentPlayerStore = useCurrentPlayerStore()
 <template>
   <div class="topbar-container">
     <div class="round">
-        <!-- add round number as paramiter later -->
-      Round 1
+=      Round 1
     </div>
     <div class="round">
       Current player: {{ currentPlayerStore.currentPlayer }}
@@ -34,8 +33,8 @@ const currentPlayerStore = useCurrentPlayerStore()
 .topbar-container {
   background: rgba(0, 0, 0, 0.7);
   display: flex;
-  flex-direction: column; /* stack round + players */
-  align-items: center;    /* center everything horizontally */
+  flex-direction: column; 
+  align-items: center; 
   padding: 10px;
   border-radius: 0 0 30px 30px;
   min-width : 50vw;
