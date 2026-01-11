@@ -1,4 +1,3 @@
-import { ref } from 'vue'
 import type { Card } from './card'
 
 type NonEmptyMutableCards = [Card, ...Card[]]
@@ -7,7 +6,7 @@ function hasCards(cards: readonly Card[]): cards is NonEmptyMutableCards {
   return cards.length > 0
 }
 
-function isValidIndex(cards: readonly Card[], index: number): index is number {
+function isValidIndex(cards: readonly Card[], index: number): boolean {
   return index >= 0 && index < cards.length
 }
 
@@ -24,14 +23,14 @@ export interface PlayerHand {
 }
 
 export function playerHand(name: string): PlayerHand {
-  const playerCards = ref<Card[]>([])
   let score = 0
+  const cards: Card[] = []
 
   return {
     playerName: name,
 
     get playerCards() {
-      return playerCards.value
+      return cards
     },
 
     get score() {
@@ -39,8 +38,6 @@ export function playerHand(name: string): PlayerHand {
     },
 
     putCardBack(card, index) {
-      const cards = playerCards.value
-
       const safeIndex =
         index < 0 ? 0 :
         index > cards.length ? cards.length :
@@ -49,13 +46,11 @@ export function playerHand(name: string): PlayerHand {
       cards.splice(safeIndex, 0, card)
     },
 
-    takeCards(cards) {
-      playerCards.value.push(...cards)
+    takeCards(newCards) {
+      cards.push(...newCards)
     },
 
     playCard(index) {
-      const cards = playerCards.value
-
       if (!hasCards(cards) || !isValidIndex(cards, index)) {
         return undefined
       }
@@ -68,7 +63,7 @@ export function playerHand(name: string): PlayerHand {
     },
 
     resetCards() {
-      playerCards.value.length = 0
+      cards.length = 0
     },
   }
 }
