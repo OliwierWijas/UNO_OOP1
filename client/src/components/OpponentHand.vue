@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { PlayerHand } from "domain/src/model/playerHand";
 import opponentImg from "@/components/images/opponentCards.png"
+import type { PlayerHandSubscription } from "@/model/uno-client";
 
 defineProps<{
-  opponent: PlayerHand;
+  opponent: PlayerHandSubscription;
 }>();
 </script>
 

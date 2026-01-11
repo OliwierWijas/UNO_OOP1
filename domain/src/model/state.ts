@@ -1,1 +1,0 @@
-export type State = "PENDING" | "STARTED" | "FINISHED";

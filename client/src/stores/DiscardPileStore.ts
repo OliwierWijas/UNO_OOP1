@@ -1,16 +1,15 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { DiscardPile } from 'domain/src/model/discardPile'
+import type { Card } from 'domain/src/model/card'
 
 export const useDiscardPileStore = defineStore('discardPile', () => {
-  const discardPile = ref<DiscardPile | null>(null)
+  const pile = ref<Card[]>([])
 
-  const pile = computed(() => discardPile.value?.pile ?? [])
-
-  const topCard = computed(() => pile.value[pile.value.length - 1] ?? null)
-
-  const set = (newDiscardPile: DiscardPile) => {
-    discardPile.value = newDiscardPile
+  const topCard = computed(() =>
+    pile.value.length > 0 ? pile.value[pile.value.length - 1] : null
+  )
+  const set = (cards: Card[]) => {
+    pile.value = [...cards]
   }
 
   return {

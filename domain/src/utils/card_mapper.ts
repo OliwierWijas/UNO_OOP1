@@ -1,7 +1,7 @@
 import { Card } from "../model/card";
 import { Color, Digit, Type } from "../model/types";
 
-export function mapCard(card: { type: string; color?: string; digit?: number | null }): Card<Type> {
+export function mapCard(card: { type: string; color?: string; digit?: number | null }): Card {
   const type = card.type as Type;
 
   switch (type) {

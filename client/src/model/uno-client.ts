@@ -143,7 +143,7 @@ export async function start_game(gameName: string): Promise<Game> {
   return result as Game;
 }
 
-export async function take_cards(gameName: string, playerName: string, numberOfCards: number): Promise<Card<Type>[]> {
+export async function take_cards(gameName: string, playerName: string, numberOfCards: number): Promise<Card[]> {
   const response = await mutate(gql`
     mutation TakeCards($gameName: String!, $playerName: String!, $numberOfCards: Int!) {
       take_cards(takeCardsDTO: {
@@ -319,7 +319,7 @@ export async function onCurrentPlayerUpdated(
 
 export async function onDiscardPileUpdated(
   gameName: string,
-  subscriber: (cards: Card<Type>[]) => void
+  subscriber: (cards: Card[]) => void
 ) {
   const discardPileSubscription = gql`
     subscription DiscardPileUpdated($gameName: String!) {

@@ -1,38 +1,38 @@
 <script setup lang="ts">
-import { type PropType, defineProps, defineEmits, computed } from 'vue'
-import type { PlayerHand } from "domain/src/model/playerHand";
+import { computed } from 'vue'
 import UnoCard from "./Card.vue";
 import type { Card } from "domain/src/model/card";
-import type { Type } from "domain/src/model/types";
 import { useCurrentPlayerStore } from '@/stores/CurrentPlayerStore';
+import type { PlayerHandSubscription } from '@/model/uno-client';
 
 const currentPlayerStore = useCurrentPlayerStore()
 
-const props = defineProps({
-  playerHand: {
-    type: Object as PropType<PlayerHand>,
-    required: true
-  }
-});
+const props = defineProps<{
+  playerHand: PlayerHandSubscription,
+  cards: Card[]
+}>()
 
+
+const cards = computed(() => props.cards)
 const currentHand = computed(() => props.playerHand);
 
 const emit = defineEmits<{
-  (e: 'card-played', payload: { cardIndex: number; card: Card<Type> }): void;
+  (e: 'card-played', payload: { cardIndex: number; card: Card }): void;
 }>();
 
 function playCard(index: number) {
-  console.log(currentHand.value.playerCards)
-  const card = currentHand.value.playCard(index)
-  console.log(card)
-  emit('card-played', { cardIndex: index, card });
+  if (cards.value.length > 0) {
+    const card = cards.value.splice(index, 1)[0]
+    if (!card) return
+    emit('card-played', { cardIndex: index, card });
+  }
 }
 
 const spacing = 45
 const cardWidth = 80
 
 const cardStyle = (index : number) => {
-  const total = props.playerHand.playerCards.length
+  const total = currentHand.value.numberOfCards
   const groupWidth = cardWidth + spacing * (total - 1)
   const left = `calc(50% - ${groupWidth / 2 - index * spacing}px)`
   return {
@@ -47,7 +47,7 @@ const cardStyle = (index : number) => {
   <div class="player-hand">
     <div v-if="currentPlayerStore.currentPlayer === props.playerHand.playerName" class="hand-cards">
       <UnoCard
-        v-for="(card, index) in currentHand.playerCards"
+        v-for="(card, index) in cards"
         :key="index"
         :card="card"
         class="uno-card"

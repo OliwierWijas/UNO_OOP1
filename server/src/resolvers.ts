@@ -2,8 +2,8 @@ import { API } from "./api"
 import { CreateGameDTO, CreatePlayerHandDTO, GamesNameDTO, PlayCardDTO, TakeCardsDTO } from "./servermodel"
 import { GraphQLError } from "graphql"
 import { PubSub } from "graphql-subscriptions"
-import { mapCard } from "domain/src/utils/card_mapper"
 import { RulesHelper } from "domain/src/utils/rules_helper"
+import { isStarted } from "domain/src/model/game"
 
 async function respond_with_error(err: any): Promise<never> {
   throw new GraphQLError(err.type)
@@ -94,11 +94,21 @@ export const create_resolvers = (pubsub: PubSub, api: API) => {
             return gamesRes.resolve({
               onSuccess: async (all) => {
                 const g = all.find((g: any) => g.name === params.gameName);
-                if (!g || !g.currentRound) {
+
+                if (!g) {
+                  throw new Error("Game not found.")
+                }
+
+                // NARROWING
+                if (!isStarted(g)) {
+                  throw new Error("Game has not started or has finished.")
+                }
+
+                if (!g.rounds[g.currentRoundIndex]) {
                   return { isFinished: false, winner: "Unknown", winnerScore: 0 };
                 }
 
-                const round = g.currentRound;
+                const round = g.rounds[g.currentRoundIndex];
 
                 // find player with 0 cards
                 const winnerPlayer = round.playerHands.find((p: any) => p.playerCards.length === 0);

@@ -1,28 +1,46 @@
-import type { Card } from './card';
-import type { Type } from './types';
+import type { Card } from './card'
+
+type NonEmptyPile = readonly [Card, ...Card[]]
+
+function hasCards(pile: readonly Card[]): pile is NonEmptyPile {
+  return pile.length > 0
+}
 
 export interface DiscardPile {
-  pile: Card<Type>[];
+  readonly pile: ReadonlyArray<Card>
 
-  addCard(card: Card<Type>): void;
-  getTopCard(): Card<Type> | undefined;
-  reset(): void;
+  addCards(card: Card[]): void
+  addCard(card: Card): void
+  getTopCard(): Card | undefined
+  reset(): void
 }
 
 export function discardPile(): DiscardPile {
-  return {
-    pile: [],
+  const pile: Card[] = []
 
-    addCard(card: Card<Type>) {
-      this.pile.push(card);
+  return {
+    get pile() {
+      return pile
+    },
+
+    addCards(cards: Card[]) {
+      pile.push(...cards)
+    },
+
+    addCard(card) {
+      pile.push(card)
     },
 
     getTopCard() {
-      return this.pile.length > 0 ? this.pile[this.pile.length - 1] : undefined;
+      if (!hasCards(pile)) {
+        return undefined
+      }
+
+      return pile[pile.length - 1]
     },
 
     reset() {
-      this.pile = [];
+      pile.length = 0
     },
-  };
+  }
 }

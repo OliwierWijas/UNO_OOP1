@@ -1,32 +1,40 @@
 import type { Color, Digit, Type } from "./types"
 
-type MutableCard<T extends Type> = {
-  type: T
+export function isColoredCard(card: Card): card is ColoredCard {
+  return card.type !== 'WILD' && card.type !== 'DRAW4'
 }
 
-type MutableWildCard<T extends Extract<Type, 'WILD' | 'DRAW4'>> = MutableCard<T> & {
-  type: T
+export function isNumberedCard(card: Card): card is NumberedCard {
+  return card.type === 'NUMBERED'
 }
 
-type MutableColoredCard<T extends Type> = MutableCard<T> & {
+type BaseCard<T extends Type> = Readonly<{
+  type: T
+}>
+
+export type NumberedType = Extract<Type, 'NUMBERED'>
+// 'SKIP' | 'REVERSE' | 'DRAW2'
+export type ActionType = Exclude<Type, NumberedType | 'WILD' | 'DRAW4'>
+export type WildType = Extract<Type, 'WILD' | 'DRAW4'>
+
+export type NumberedCard = BaseCard<NumberedType> & Readonly<{
   color: Color
-}
-
-export type MutableTypedCard<T extends Exclude<Type, 'NUMBERED'>> = MutableColoredCard<
-  Exclude<Type, 'NUMBERED'>
-> & {
-  type: T
-}
-
-type MutableNumberedCard<T extends Extract<Type, 'NUMBERED'>> = MutableColoredCard<T> & {
-  type: T
   number: Digit
-}
+}>
 
-export type Card<T extends Type> = T extends 'NUMBERED'
-  ? Readonly<MutableNumberedCard<'NUMBERED'>>
-  : T extends 'SKIP' | 'REVERSE' | 'DRAW2'
-    ? Readonly<MutableTypedCard<T>>
-    : T extends 'WILD' | 'DRAW4'
-      ? Readonly<MutableWildCard<T>>
-      : never
+export type ActionCard = BaseCard<ActionType> & Readonly<{
+  color: Color
+}>
+
+export type WildCard = BaseCard<WildType>
+
+export type Card =
+  | NumberedCard
+  | ActionCard
+  | WildCard
+
+
+export type ColoredCard =
+  Extract<Card, { color: Color }>
+
+export type CardTypes = Pick<Card, 'type'>

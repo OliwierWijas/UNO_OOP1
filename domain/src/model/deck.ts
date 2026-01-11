@@ -1,24 +1,40 @@
 import { DeckFactory } from '../utils/deck_factory'
 import { standardShuffler } from '../utils/random_utils'
 import type { Card } from './card'
-import type { Type } from './types'
+
+type NonEmptyCards = readonly [Card, ...Card[]]
 
 export interface Deck {
-  cards: Card<Type>[]
+  readonly cards: ReadonlyArray<Card>
 
-  drawCards(nrCards: number): Card<Type>[]
+  drawCards(nrCards: number): Card[]
   shuffle(): void
 }
 
+function hasCards(cards: ReadonlyArray<Card>): cards is NonEmptyCards {
+  return cards.length > 0
+}
+
 export function deck(): Deck {
+  const cards: Card[] = DeckFactory.createFullDeck()
+  
   return {
-    cards: DeckFactory.createFullDeck(),
-    shuffle() {
-      standardShuffler(this.cards)
+    get cards() {
+      return cards
     },
 
-    drawCards(nrCards: number) {
-      return this.cards.splice(0, nrCards)
+    shuffle() {
+      if (hasCards(cards)) {
+        standardShuffler(cards)
+      }
+    },
+
+    drawCards(nrCards) {
+      if (!hasCards(cards)) {
+        return []
+      }
+
+      return cards.splice(0, nrCards)
     },
   }
 }

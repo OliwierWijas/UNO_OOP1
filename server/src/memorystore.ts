@@ -1,12 +1,11 @@
 import { GameStore, CreateGameDTO, StoreError, CreatePlayerHandDTO, GamesNameDTO } from "./servermodel"
-import { game, type Game } from "domain/src/model/Game"
+import { game, isStarted, type Game } from "domain/src/model/Game"
 import { ServerResponse } from "./response"
 import { playerHand, type PlayerHand } from "domain/src/model/playerHand"
 import { deck } from "domain/src/model/deck"
 import { Card } from "domain/src/model/card"
-import { Type } from "domain/src/model/types"
 import { DiscardPile } from "domain/src/model/discardPile"
-import { Round } from "domain/src/model/round"
+import { isStartedWithPlayer, Round } from "domain/src/model/round"
 
 const not_found = (key: any): StoreError => ({ type: 'Not Found', key })
 
@@ -71,6 +70,7 @@ export class MemoryStore implements GameStore {
 
   async start_game(gamesName : GamesNameDTO) : Promise<ServerResponse<Game, StoreError>>{
     const targetGame = this._games.find(g => g.name === gamesName.name);
+
     if (!targetGame) {
       return ServerResponse.error(not_found(gamesName.name));
     }
@@ -78,14 +78,23 @@ export class MemoryStore implements GameStore {
     const newDeck = deck();
 
     targetGame.startGame(newDeck);
-    targetGame.currentRound?.findDealer()
+
+    if (!isStarted(targetGame)) {
+      return ServerResponse.error(not_found(gamesName.name));
+    }
+
+    targetGame.rounds[targetGame.currentRoundIndex].findDealer()
 
     return ServerResponse.ok(targetGame);
   }
 
-  async take_cards(gameName: string, playerName: string, number: number): Promise<ServerResponse<Card<Type>[], StoreError>> {
+  async take_cards(gameName: string, playerName: string, number: number): Promise<ServerResponse<Card[], StoreError>> {
     const targetGame = this._games.find(g => g.name === gameName);
     if (!targetGame) {
+      return ServerResponse.error(not_found(gameName));
+    }
+
+    if (!isStarted(targetGame)) {
       return ServerResponse.error(not_found(gameName));
     }
 
@@ -94,9 +103,9 @@ export class MemoryStore implements GameStore {
       return ServerResponse.error(not_found(playerName));
     }
 
-    const deck = targetGame.currentRound?.deck
+    const deck = targetGame.rounds[targetGame.currentRoundIndex].deck
     
-    let cards: Card<Type>[] = [];
+    let cards: Card[] = [];
     if (deck) {
       cards = deck.drawCards(number)
     }
@@ -111,14 +120,24 @@ export class MemoryStore implements GameStore {
       return ServerResponse.error(not_found(gameName));
     }
 
-    const currentPlayer = targetGame.currentRound?.currentPlayer
+    if (!isStarted(targetGame)) {
+      return ServerResponse.error(not_found(gameName));
+    }
+    
+    const round = targetGame.rounds[targetGame.currentRoundIndex]
+
+    if (!isStartedWithPlayer(round)) {
+      return ServerResponse.error(not_found(targetGame.currentRoundIndex));
+    }
+
+    const currentPlayer = round.playerHands[round.currentPlayerIndex]
     if (!currentPlayer) {
-      return ServerResponse.error(not_found(currentPlayer));
+      return ServerResponse.error(not_found(round.currentPlayerIndex));
     }
 
     const card = currentPlayer.playerCards[index]
 
-    const cardCanBePut = targetGame.currentRound?.putCard(card) ?? false
+    const cardCanBePut = round.putCard(card) ?? false
 
     if (cardCanBePut) {
       currentPlayer.playCard(index)
@@ -133,9 +152,20 @@ export class MemoryStore implements GameStore {
       return ServerResponse.error(not_found(gameName));
     }
 
-    const currentPlayer = targetGame.currentRound?.currentPlayer
+    if (!isStarted(targetGame)) {
+      return ServerResponse.error(not_found(gameName));
+    }
+    
+    const round = targetGame.rounds[targetGame.currentRoundIndex]
+
+    if (!isStartedWithPlayer(round)) {
+      return ServerResponse.error(not_found(targetGame.currentRoundIndex));
+    }
+
+    const currentPlayer = round.playerHands[round.currentPlayerIndex]
+
     if (!currentPlayer) {
-      return ServerResponse.error(not_found(currentPlayer));
+      return ServerResponse.error(not_found(round.currentPlayerIndex));
     }
 
     return ServerResponse.ok(currentPlayer);
@@ -147,9 +177,14 @@ export class MemoryStore implements GameStore {
       return ServerResponse.error(not_found(gameName));
     }
 
-    const currentRound = targetGame.currentRound
+    if (!isStarted(targetGame)) {
+      return ServerResponse.error(not_found(gameName));
+    }
+
+    const currentRound = targetGame.rounds[targetGame.currentRoundIndex]
+
     if (!currentRound) {
-      return ServerResponse.error(not_found(currentRound));
+      return ServerResponse.error(not_found(targetGame.currentRoundIndex));
     }
 
     const discardPile = currentRound.discardPile
@@ -165,10 +200,8 @@ export class MemoryStore implements GameStore {
 
     const newDeck = deck();
 
-    // This triggers next round logic — handled by domain/game.ts
     const winner = targetGame.nextRound(newDeck);
 
-    // Optionally log or handle the winner
     if (winner) {
       console.log(`🎉 Round won by ${winner.playerName} with score ${winner.score}`);
     }

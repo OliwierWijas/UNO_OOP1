@@ -4,6 +4,8 @@ import UnoCard from './Card.vue';
 
 const discardPileStore = useDiscardPileStore();
 
+console.log(discardPileStore.topCard)
+
 </script>
 
 <template>

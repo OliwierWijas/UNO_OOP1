@@ -1,15 +1,18 @@
-import type { Card } from '../model/card'
+import type { Card, ColoredCard } from '../model/card'
 import type { PlayerHand } from '../model/playerHand'
 import type { Round } from '../model/round'
-import type { Type } from '../model/types'
+
+function isColoredCard(card: Card): card is ColoredCard {
+  return card.type !== 'WILD' && card.type !== 'DRAW4'
+}
 
 export class RulesHelper {
-  static canBePutOnTop(topCard: Card<Type> | undefined, chosenCard: Card<Type> | undefined): boolean {
-    if(topCard === undefined) {
+  static canBePutOnTop(topCard: Card | undefined, chosenCard: Card | undefined): boolean {
+    if(!topCard) {
       return true;
     }
 
-    if (chosenCard === undefined) {
+    if (!chosenCard) {
       throw new Error("Undefined card cannot be put in the discard pile.");
     }
 
@@ -24,7 +27,7 @@ export class RulesHelper {
     }
 
     // Same color always allowed
-    if (chosenCard.color && topCard.color && chosenCard.color === topCard.color) {
+    if (isColoredCard(chosenCard) && isColoredCard(topCard) && chosenCard.color === topCard.color) {
       return true
     }
 
@@ -53,7 +56,7 @@ export class RulesHelper {
       const points = hand.playerCards.reduce((sum, card) => {
         switch (card.type) {
           case 'NUMBERED':
-            return sum + (card.number ?? 0)
+            return sum + card.number
           case 'DRAW2':
           case 'REVERSE':
           case 'SKIP':
@@ -72,11 +75,6 @@ export class RulesHelper {
   }
 
   static checkIfAnyoneHasScore500(currentRound: Round): PlayerHand | undefined {
-    currentRound.playerHands.forEach(p => {
-      if (p.score >= 500)
-        return p
-    })
-
-    return undefined
+    return currentRound.playerHands.find(p => p.score >= 500)
   }
 }

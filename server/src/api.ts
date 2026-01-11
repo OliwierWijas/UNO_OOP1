@@ -2,9 +2,8 @@ import { ServerResponse } from "./response"
 import { CreateGameDTO, CreatePlayerHandDTO, DiscardPileSubscription, GamesNameDTO, GameStore, PlayerHandSubscription, ServerError } from "./servermodel"
 import { ServerModel } from "./servermodel"
 import type { PlayerHand } from "domain/src/model/playerHand"
-import { type Game } from "domain/src/model/Game"
+import { isStarted, type Game } from "domain/src/model/Game"
 import { Card } from "domain/src/model/card"
-import { Type } from "domain/src/model/types"
 import { Round } from "domain/src/model/round"
 import { RulesHelper } from "domain/src/utils/rules_helper"
 
@@ -25,7 +24,7 @@ export type API = {
   create_player_hand : (dto : CreatePlayerHandDTO)  => Promise<ServerResponse<PlayerHand, ServerError>>
   get_game_player_hands : (gameName: GamesNameDTO) => Promise<ServerResponse<PlayerHand[], ServerError>>
   start_game: (gameName: GamesNameDTO) => Promise<ServerResponse<Game, ServerError>>
-  take_cards: (gameName: string, playerName: string, number: number) => Promise<ServerResponse<Card<Type>[], ServerError>>
+  take_cards: (gameName: string, playerName: string, number: number) => Promise<ServerResponse<Card[], ServerError>>
   play_card: (gameName: string, index: number) => Promise<ServerResponse<boolean, ServerError>>
   round_won: (gameName: string) => Promise<ServerResponse<void, ServerError>>;
 }
@@ -87,6 +86,7 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
   }
 
   async function start_game(gameName: GamesNameDTO) {
+    console.log("game starting")
     const result = await server.start_game(gameName);
     result.process(async (game) => {
       await broadcaster.sendGameStarted(gameName.name, game);
@@ -116,12 +116,11 @@ export const create_api = (broadcaster: Broadcaster, store: GameStore): API => {
 async function play_card(gameName: string, index: number) {
   const cardPlayed = await server.play_card(gameName, index)
 
-  // Check for winner after playing card
   if (cardPlayed) {
     const gamesRes = await server.get_games();
     await gamesRes.process(async (allGames) => {
       const targetGame = allGames.find(g => g.name === gameName);
-      if (!targetGame || !targetGame.currentRound) return;
+      if (!targetGame) return;
 
       // Check if any player has 0 cards
       const playersWithNoCards = targetGame.playerHands.filter(p => p.playerCards.length === 0);
@@ -132,8 +131,12 @@ async function play_card(gameName: string, index: number) {
         const remainingPlayers = targetGame.playerHands.filter(p => p.playerCards.length > 0);
         const winnerScore = RulesHelper.calculateScore(remainingPlayers);
         
+        if (!isStarted(targetGame)) {
+          return ServerResponse.error<ServerError>({ type: "Not Found", key: gameName });
+        }
+
         // Broadcast round won
-        await broadcaster.sendRoundWon(gameName, targetGame.currentRound);
+        await broadcaster.sendRoundWon(gameName, targetGame.rounds[targetGame.currentRoundIndex]);
       }
     });
 
@@ -145,6 +148,8 @@ async function play_card(gameName: string, index: number) {
         digit: card.type === 'NUMBERED' ? card.number : null,
         type: card.type
       }));
+      console.log("discard pile broadcasted")
+      console.log(mappedCards)
       return broadcastDiscardPile(gameName, mappedCards);
     });
 
@@ -169,11 +174,15 @@ async function round_won(gameName: string): Promise<ServerResponse<void, ServerE
 
   return gamesRes.flatMap(async (all) => {
     const game = all.find((g: any) => g.name === gameName);
-    if (!game || !game.currentRound) {
+    if (!game) {
       return ServerResponse.error<ServerError>({ type: "Not Found", key: gameName });
     }
 
-    const round = game.currentRound;
+    if (!isStarted(game)) {
+      return ServerResponse.error<ServerError>({ type: "Not Found", key: gameName });
+    }
+
+    const round = game.rounds[game.currentRoundIndex];
     const result = await server.round_won(gameName, round);
 
     await result.process(async () => {
@@ -183,9 +192,6 @@ async function round_won(gameName: string): Promise<ServerResponse<void, ServerE
     return result as unknown as ServerResponse<void, ServerError>;
   });
 }
-
-
-
 
   return {
     create_game,

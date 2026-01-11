@@ -1,50 +1,60 @@
 <script setup lang="ts">
 import type { Card } from 'domain/src/model/card';
-import { playerHand as createPlayerHand, type PlayerHand } from 'domain/src/model/playerHand';
 import { useRoute } from 'vue-router';
 import PlayerHandComponent from './PlayerHand.vue';
 import OpponentHand from './OpponentHand.vue';
 import Deck from './Deck.vue';
 import DiscardPile from './DiscardPile.vue';
 import TopInfoBar from './TopInfoBar.vue';
-import RoundWinnerPopup from './RoundWinnerPopup.vue';
-import type { Type } from 'domain/src/model/types';
-import { reactive, onMounted, computed, ref } from 'vue';
-import { round as createRound } from 'domain/src/model/round';
+import { onMounted, computed, ref } from 'vue';
 import * as api from "../model/uno-client";
 import { usePlayerHandsStore } from '@/stores/PlayerHandsStore';
 import { useOngoingGamesStore } from "@/stores/OngoingGamesStore"
 import { useCurrentPlayerStore } from '@/stores/CurrentPlayerStore';
 import { useDiscardPileStore } from '@/stores/DiscardPileStore';
-import { discardPile as createDiscardPile } from "domain/src/model/discardPile"
+import { useCardsStore } from '@/stores/CardsStore';
 
 const route = useRoute();
+const gameName = (route.query.gameName as string) || 'DefaultGame';
+const playerName = (route.query.playerName as string) || 'Player';
+
+
+
 const playerHandsStore = usePlayerHandsStore();
 const ongoingGamesStore = useOngoingGamesStore();
 const currentPlayerStore = useCurrentPlayerStore()
 const discardPileStore = useDiscardPileStore();
+const cardsStore = useCardsStore();
 
-const gameName = (route.query.gameName as string) || 'DefaultGame';
-const playerName = (route.query.playerName as string) || 'Player';
 
-const playerHand = reactive(createPlayerHand(playerName));
-const opponents = reactive<ReturnType<typeof createPlayerHand>[]>([]);
-const currentRound = reactive(createRound([playerHand, ...opponents]));
 
 const isLoading = ref(false);
 const gameStarted = ref(false);
-let hasTakenInitialCards = false
 
-const canStartGame = computed(() => {
-  return playerHandsStore.playerHands.length > 1 && !gameStarted.value;
-});
+const cards = computed<Card[]>(() => {
+  return cardsStore.cards
+})
 
-const roundWinner = ref<{ winner: string; score: number } | null>(null);
+const currentPlayer = computed<api.PlayerHandSubscription | null>(() => {
+  return playerHandsStore.playerHands.find(
+    p => p.playerName === playerName
+  ) ?? null
+})
+
+const opponents = computed(() =>
+  playerHandsStore.playerHands.filter(p => p.playerName !== playerName)
+)
+
+const canStartGame = computed(() =>
+  playerHandsStore.playerHands.length > 1 && !gameStarted.value
+)
+
+
+
 
 function setupPlayerHandsSubscription() {
   api.onGamePlayerHandsUpdated(gameName, (playerHands) => {
     playerHandsStore.update(playerHands);
-    updatePlayerHands(playerHands);
   });
 }
 
@@ -52,42 +62,23 @@ function setupGameStartedSubscription() {
   api.onGameStarted(gameName, (game) => {
     gameStarted.value = true;
     ongoingGamesStore.addGame(game);
-    initializeGameComponents();
   });
 }
 
 function setupCurrentPlayerSubscription() {
-  api.onCurrentPlayerUpdated(gameName, (playerName) => {
-    currentPlayerStore.set(playerName);
-    currentRound.currentPlayer = createPlayerHand(playerName)
+  api.onCurrentPlayerUpdated(gameName, (playerHand) => {
+    currentPlayerStore.set(playerHand
+    );
   });
 }
 
 function setupDiscardPileSubscription() {
   api.onDiscardPileUpdated(gameName, (cards) => {
-    const discardPile = createDiscardPile()
-    discardPile.pile = cards
-    discardPileStore.set(discardPile);
+    discardPileStore.set(cards);
   });
 }
 
-function updatePlayerHands(playerHands: any[]) {
-  opponents.length = 0;
-  playerHands.forEach(hand => {
-    if (hand.playerName === playerName) {
-      playerHand.playerCards = hand.playerCards;
-      // playerHand.name = hand.playerName
-    } else {
-      const opponent = createPlayerHand(hand.playerName);
-      opponent.playerCards = hand.playerCards; // only update mutable
-      opponents.push(opponent);
-    }
-  });
-  const allPlayers = [playerHand, ...opponents];
-  const currentPlayer = currentRound.currentPlayer;
-  Object.assign(currentRound, createRound(allPlayers));
-  currentRound.currentPlayer = currentPlayer;
-}
+
 
 async function startGame() {
   if (!canStartGame.value || isLoading.value) return;
@@ -104,105 +95,40 @@ async function startGame() {
   }
 }
 
-async function initializeGameComponents() {
-  if (!hasTakenInitialCards) {
-    const cards = await api.take_cards(gameName, playerHand.playerName, 1)
-    playerHand.takeCards(cards)
-    hasTakenInitialCards = true
-  }
-
-  currentRound.nextPlayer();
+async function handleCardDrawn(card: Card) {
+  if (!currentPlayer.value) return
+  cards.value.push(card)
 }
 
-function handleCardDrawn(card: Card<Type>) {
-  if (!gameStarted.value) return;
+async function handleCardPlayed(payload: { cardIndex: number; card: Card }) {
+  if (!currentPlayer.value) return
 
-  if (card) {
-    playerHand.takeCards([card]);
+  const ok = await api.play_card(gameName, payload.cardIndex)
+
+  if (!ok) {
+    cards.value.splice(payload.cardIndex, 0, payload.card)
   }
 }
 
-async function handleCardPlayed(payload: { cardIndex: number; card: Card<Type> }) {
-  if (!gameStarted.value) return;
-
-  const canBePut = await api.play_card(gameName, payload.cardIndex)
-
-  if (!canBePut) {
-    playerHand.putCardBack(payload.card, payload.cardIndex);
-  }
-}
-
-async function loadInitialPlayerHands() {
-  try {
-    const initialPlayerHands = await api.get_game_player_hands(gameName);
-    updatePlayerHands(initialPlayerHands);
-    playerHandsStore.update(initialPlayerHands.map(mapPlayerHandToSubscription));
-
-    const ongoingGame = ongoingGamesStore.getGame(gameName);
-    if (ongoingGame) {
-      gameStarted.value = true;
-      initializeGameComponents();
-    }
-  } catch (error) {
-    console.error('Error fetching initial player hands:', error);
-  }
-}
-
-function mapPlayerHandToSubscription(hand: PlayerHand): api.PlayerHandSubscription {
+/*function mapPlayerHandToSubscription(hand: PlayerHand): api.PlayerHandSubscription {
   return {
     playerName: hand.playerName,
     numberOfCards: hand.playerCards?.length,
     score: hand.score
   };
-}
+}*/
 
-function setupRoundWonSubscription() {
-  console.log("the on round here")
-  api.onRoundWon(gameName, (data) => {
-    console.log(data)
-    if (data.isFinished) {
-      console.log(data)
-      roundWinner.value = { winner: data.winner, score: data.winnerScore };
-    }
-  });
-}
-
-async function startNextRound() {
-  if (!roundWinner.value) return;
-
-  try {
-    await api.round_won(gameName);
-
-    // Reset popup
-    roundWinner.value = null;
-
-    // ree-fetch player hands for the new round
-    const initialPlayerHands = await api.get_game_player_hands(gameName);
-    updatePlayerHands(initialPlayerHands);
-  } catch (err) {
-    console.error('Failed to start next round:', err);
-  }
-}
 
 onMounted(async () => {
-  await loadInitialPlayerHands();
   setupPlayerHandsSubscription();
   setupGameStartedSubscription();
   setupCurrentPlayerSubscription();
   setupDiscardPileSubscription();
-  setupRoundWonSubscription();
 });
 </script>
 
 <template>
   <div class="game-container">
-    <RoundWinnerPopup
-      v-if="roundWinner"
-      :winner="roundWinner.winner"
-      :score="roundWinner.score"
-      @next-round="startNextRound"
-    />
-    
     <TopInfoBar />
 
     <div v-if="!gameStarted" class="start-game-section">
@@ -264,7 +190,7 @@ onMounted(async () => {
         <Deck @card-drawn="handleCardDrawn" :game-name="gameName" :player-name="playerName"/>
       </div>
 
-      <PlayerHandComponent :playerHand="playerHand" @card-played="handleCardPlayed" />
+      <PlayerHandComponent v-if="currentPlayer" :playerHand="currentPlayer" :cards="cards" @card-played="handleCardPlayed" />
     </template>
   </div>
 </template>

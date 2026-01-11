@@ -10,7 +10,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'card-drawn', card: Card<Type>): void
+  (e: 'card-drawn', card: Card): void
 }>();
 
 

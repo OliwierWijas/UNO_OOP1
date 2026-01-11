@@ -1,37 +1,33 @@
 <script setup lang="ts">
-import type { Card } from "domain/src/model/card";
-import type { Type } from "domain/src/model/types";
+import { isColoredCard, isNumberedCard, type ActionCard, type ActionType, type Card, type NumberedCard, type WildType } from "domain/src/model/card";
 import { computed, type PropType } from "vue";
 
 const props = defineProps({
   card: {
-    type: Object as PropType<Card<Type>>,
+    type: Object as PropType<Card>,
     required: true
   }
 })
 
-function isColoredCard(card: Card<Type>): card is Extract<Card<Type>, { color: string }> {
-  return 'color' in card;
+const numberedImageMap: Record<NumberedCard["type"], (card: NumberedCard) => string> = {
+  NUMBERED: (card) =>
+    `/src/components/images/${card.color}_${card.number}.png`,
 }
 
-function isNumberedCard(card: Card<Type>): card is Extract<Card<Type>, { type: 'NUMBERED'; number: number }> {
-  return card.type === 'NUMBERED';
+const coloredImageMap: Record<ActionType, (card: ActionCard) => string> = {
+  SKIP: (card) =>
+    `/src/components/images/${card.color}_Skip.png`,
+  REVERSE: (card) =>
+    `/src/components/images/${card.color}_Reverse.png`,
+  DRAW2: (card) =>
+    `/src/components/images/${card.color}_Draw_2.png`,
 }
 
-const numberedImageMap: Record<Extract<Type, 'NUMBERED'>, (card: Extract<Card<Type>, {color : string, number: number}>) => string> = {
-  NUMBERED: (card) => `/src/components/images/${card.color}_${card.number}.png`,
-}
-
-const coloredImageMap: Record<Exclude<Type, 'WILD' | 'DRAW4' | 'NUMBERED'>, (card: Extract<Card<Type>, { color: string }>) => string> = {
-  SKIP: (card) => `/src/components/images/${card.color}_Skip.png`,
-  REVERSE: (card) => `/src/components/images/${card.color}_Reverse.png`,
-  DRAW2: (card) => `/src/components/images/${card.color}_Draw_2.png`,
-};
-
-const wildImageMap: Record<'WILD' | 'DRAW4', string> = {
+const wildImageMap: Record<WildType, string> = {
   WILD: `/src/components/images/Wild_Card_Change_Colour.png`,
   DRAW4: `/src/components/images/Wild_Card_Draw_4.png`,
-};
+}
+
 
 const cardImage = computed(() => {
   const card = props.card;
@@ -42,7 +38,7 @@ const cardImage = computed(() => {
     return coloredImageMap[card.type](card);
   } 
   else {
-    return wildImageMap[card.type as 'WILD' | 'DRAW4'];
+    return wildImageMap[card.type]
   }
 });
 </script>
