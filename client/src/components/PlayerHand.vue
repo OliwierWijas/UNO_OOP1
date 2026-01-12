@@ -20,6 +20,10 @@ const emit = defineEmits<{
   (e: 'card-played', payload: { cardIndex: number; card: Card }): void;
 }>();
 
+const isMyTurn = computed(
+  () => currentPlayerStore.currentPlayer === props.playerHand.playerName
+)
+
 function playCard(index: number) {
   if (cards.value.length > 0) {
     const card = cards.value.splice(index, 1)[0]
@@ -45,7 +49,7 @@ const cardStyle = (index : number) => {
 </script>
 <template>
   <div class="player-hand">
-    <div v-if="currentPlayerStore.currentPlayer === props.playerHand.playerName" class="hand-cards">
+    <div v-if="isMyTurn" class="hand-cards">
       <UnoCard
         v-for="(card, index) in cards"
         :key="index"

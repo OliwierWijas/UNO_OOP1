@@ -15,8 +15,8 @@ import { useDiscardPileStore } from '@/stores/DiscardPileStore';
 import { useCardsStore } from '@/stores/CardsStore';
 
 const route = useRoute();
-const gameName = (route.query.gameName as string) || 'DefaultGame';
-const playerName = (route.query.playerName as string) || 'Player';
+const gameName = computed(() => (route.query.gameName as string) ?? "DefaultGame")
+const playerName = computed(() => (route.query.playerName as string) ?? "Player")
 
 
 
@@ -35,45 +35,45 @@ const cards = computed<Card[]>(() => {
   return cardsStore.cards
 })
 
-const currentPlayer = computed<api.PlayerHandSubscription | null>(() => {
-  return playerHandsStore.playerHands.find(
-    p => p.playerName === playerName
-  ) ?? null
-})
+const currentPlayer = computed(() =>
+  playerHandsStore.playerHands.find(p => p.playerName === playerName.value) ?? null
+)
 
 const opponents = computed(() =>
-  playerHandsStore.playerHands.filter(p => p.playerName !== playerName)
+  playerHandsStore.playerHands.filter(p => p.playerName !== playerName.value)
 )
 
-const canStartGame = computed(() =>
-  playerHandsStore.playerHands.length > 1 && !gameStarted.value
+const canStartGame = computed(
+  () => playerHandsStore.playerHands.length > 1 && !gameStarted.value
 )
 
+const isWaiting = computed(() => !gameStarted.value)
+const isPlaying = computed(() => gameStarted.value)
 
 
 
 function setupPlayerHandsSubscription() {
-  api.onGamePlayerHandsUpdated(gameName, (playerHands) => {
+  api.onGamePlayerHandsUpdated(gameName.value, (playerHands) => {
     playerHandsStore.update(playerHands);
   });
 }
 
 function setupGameStartedSubscription() {
-  api.onGameStarted(gameName, (game) => {
+  api.onGameStarted(gameName.value, (game) => {
     gameStarted.value = true;
     ongoingGamesStore.addGame(game);
   });
 }
 
 function setupCurrentPlayerSubscription() {
-  api.onCurrentPlayerUpdated(gameName, (playerHand) => {
+  api.onCurrentPlayerUpdated(gameName.value, (playerHand) => {
     currentPlayerStore.set(playerHand
     );
   });
 }
 
 function setupDiscardPileSubscription() {
-  api.onDiscardPileUpdated(gameName, (cards) => {
+  api.onDiscardPileUpdated(gameName.value, (cards) => {
     discardPileStore.set(cards);
   });
 }
@@ -85,7 +85,7 @@ async function startGame() {
 
   try {
     isLoading.value = true;
-    await api.start_game(gameName);
+    await api.start_game(gameName.value);
 
   } catch (error) {
     console.error('Error starting game:', error);
@@ -97,26 +97,18 @@ async function startGame() {
 
 async function handleCardDrawn(card: Card) {
   if (!currentPlayer.value) return
-  cards.value.push(card)
+  cardsStore.push(card)
 }
 
 async function handleCardPlayed(payload: { cardIndex: number; card: Card }) {
   if (!currentPlayer.value) return
 
-  const ok = await api.play_card(gameName, payload.cardIndex)
+  const ok = await api.play_card(gameName.value, payload.cardIndex)
 
   if (!ok) {
-    cards.value.splice(payload.cardIndex, 0, payload.card)
+    cardsStore.restore(payload.cardIndex, payload.card)
   }
 }
-
-/*function mapPlayerHandToSubscription(hand: PlayerHand): api.PlayerHandSubscription {
-  return {
-    playerName: hand.playerName,
-    numberOfCards: hand.playerCards?.length,
-    score: hand.score
-  };
-}*/
 
 
 onMounted(async () => {
@@ -129,7 +121,11 @@ onMounted(async () => {
 
 <template>
   <div class="game-container">
-    <TopInfoBar />
+    <TopInfoBar>
+      <template #center>
+        <span class="game-name">{{ gameName }}</span>
+      </template>
+    </TopInfoBar>
 
     <div v-if="!gameStarted" class="start-game-section">
       <div class="waiting-message">
@@ -194,6 +190,17 @@ onMounted(async () => {
     </template>
   </div>
 </template>
+
+
+
+
+
+
+
+
+
+
+
 
 <style scoped>
 .game-container {

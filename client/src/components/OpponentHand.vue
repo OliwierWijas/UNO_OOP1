@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import opponentImg from "@/components/images/opponentCards.png"
 import type { PlayerHandSubscription } from "@/model/uno-client";
+import { computed } from "vue";
 
-defineProps<{
+const props = defineProps<{
   opponent: PlayerHandSubscription;
 }>();
+
+const opponentName = computed(() => props.opponent.playerName)
+
 </script>
 
 <template>
   <div class="opponent-container">
     <div class="opponent-name">
-      {{ opponent.playerName }}
+      {{ opponentName }}
     </div>
 
     <img

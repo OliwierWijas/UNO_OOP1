@@ -6,40 +6,45 @@ import { onMounted } from "vue";
 import { usePendingGamesStore } from "@/stores/PendingGamesStore";
 
 const pendingGamesStore = usePendingGamesStore();
-const newGameName = ref("");
 const router = useRouter();
+
+
+const newGameName = ref("");
 const playerName = ref("");
 const isLoading = ref(true);
 
-const canStart = computed(() => playerName.value.trim().length > 0 && newGameName.value.trim().length > 0);
-const canJoin = computed(() => playerName.value.trim().length > 0);
+
+const canJoinGame = computed(() => playerName.value.trim().length > 0);
+const canCreateGame = computed(() => canJoinGame.value && newGameName.value.trim().length > 0)
+
+function goToGame(gameName: string) {
+  return router.push({
+    name: "Game",
+    query: {
+      playerName: playerName.value,
+      gameName
+    }
+  })
+}
 
 async function createGame() {
+  if (!canCreateGame.value) return
+
   try {
     await api.create_game(newGameName.value);
     await api.create_player_hand(playerName.value, newGameName.value);
-    await router.push({
-      name: 'Game',
-      query: {
-        playerName: playerName.value,
-        gameName: newGameName.value
-      }
-    });
+    await goToGame(newGameName.value)
   } catch (error) {
     console.error('Error in createGame:', error);
   }
 }
 
 async function joinGame(gameName: string) {
-    try {
+  if (!canJoinGame.value) return
+  
+  try {
     await api.create_player_hand(playerName.value, gameName);
-    await router.push({
-      name: 'Game',
-      query: {
-        playerName: playerName.value,
-        gameName: gameName
-      }
-    });
+    await goToGame(gameName)
   } catch (error) {
     console.error('Error in joinGame:', error);
     alert("Game has to much players!");
@@ -62,10 +67,12 @@ function liveUpdateGames() {
     pendingGamesStore.upsert(games);
   });
 }
-  onMounted(async () => {
-    await loadInitialGames();
-    liveUpdateGames();
-  })
+
+onMounted(async () => {
+  await loadInitialGames();
+  liveUpdateGames();
+})
+
 </script>
 
 <template>
@@ -99,7 +106,7 @@ function liveUpdateGames() {
                 <td>
                   <button
                     class="join-btn"
-                    :disabled="!canJoin"
+                    :disabled="!canJoinGame"
                     @click="joinGame(game.name)"
                   >
                     Join Game
@@ -130,7 +137,7 @@ function liveUpdateGames() {
 
           <button
             class="create-btn"
-            :disabled="!canStart"
+            :disabled="!canCreateGame"
             @click="createGame"
           >
             Create Game

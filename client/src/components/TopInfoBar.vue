@@ -8,6 +8,9 @@ const currentPlayerStore = useCurrentPlayerStore()
 </script>
 
 <template>
+  <div class="top-info-bar">
+    <slot name="center" />
+  </div>
   <div class="topbar-container">
     <div class="round">
 =      Round 1

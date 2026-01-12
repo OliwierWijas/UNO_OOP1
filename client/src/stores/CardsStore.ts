@@ -1,26 +1,31 @@
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { defineStore } from 'pinia'
 import type { Card } from 'domain/src/model/card'
 
 export const useCardsStore = defineStore('cards', () => {
-  const cards = ref<Card[]>([])
+  const cards = reactive<Card[]>([])
 
   const topCard = computed<Card | null>(() =>
-    cards.value.length > 0
-      ? cards.value[cards.value.length - 1]
+    cards.length > 0
+      ? cards[cards.length - 1]
       : null
   )
 
   const set = (newCards: Card[]) => {
-    cards.value = [...newCards]
+    cards.length = 0
+    cards.push(...newCards)
   }
 
   const push = (card: Card) => {
-    cards.value.push(card)
+    cards.push(card)
   }
 
   const clear = () => {
-    cards.value = []
+    cards.length = 0
+  }
+
+  const restore = (index: number, card: Card) => {
+    cards.splice(index, 0, card)
   }
 
   return {
@@ -28,6 +33,7 @@ export const useCardsStore = defineStore('cards', () => {
     topCard,
     set,
     push,
-    clear
+    clear,
+    restore
   }
 })

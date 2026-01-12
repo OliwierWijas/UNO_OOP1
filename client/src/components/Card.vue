@@ -1,20 +1,17 @@
 <script setup lang="ts">
-import { isColoredCard, isNumberedCard, type ActionCard, type ActionType, type Card, type NumberedCard, type WildType } from "domain/src/model/card";
-import { computed, type PropType } from "vue";
+import { isColoredCard, isNumberedCard, type ActionCard, type Card, type NumberedCard, type WildCard } from "domain/src/model/card";
+import { computed } from "vue";
 
-const props = defineProps({
-  card: {
-    type: Object as PropType<Card>,
-    required: true
-  }
-})
+const props = defineProps<{
+  card: Card | null
+}>()
 
 const numberedImageMap: Record<NumberedCard["type"], (card: NumberedCard) => string> = {
   NUMBERED: (card) =>
     `/src/components/images/${card.color}_${card.number}.png`,
 }
 
-const coloredImageMap: Record<ActionType, (card: ActionCard) => string> = {
+const coloredImageMap: Record<ActionCard["type"], (card: ActionCard) => string> = {
   SKIP: (card) =>
     `/src/components/images/${card.color}_Skip.png`,
   REVERSE: (card) =>
@@ -23,7 +20,7 @@ const coloredImageMap: Record<ActionType, (card: ActionCard) => string> = {
     `/src/components/images/${card.color}_Draw_2.png`,
 }
 
-const wildImageMap: Record<WildType, string> = {
+const wildImageMap: Record<WildCard["type"], string> = {
   WILD: `/src/components/images/Wild_Card_Change_Colour.png`,
   DRAW4: `/src/components/images/Wild_Card_Draw_4.png`,
 }
@@ -31,6 +28,9 @@ const wildImageMap: Record<WildType, string> = {
 
 const cardImage = computed(() => {
   const card = props.card;
+
+  if (!card) return
+
   if (isNumberedCard(card)) {
     return numberedImageMap[card.type](card);
   }

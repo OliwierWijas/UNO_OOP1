@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { Card } from 'domain/src/model/card';
-import type { Type } from 'domain/src/model/types';
 import deckImg from '@/components/images/Back_Card.png';
 import * as api from "../model/uno-client";
+import { computed, ref } from 'vue';
+import { useCurrentPlayerStore } from '@/stores/CurrentPlayerStore';
 
 const props = defineProps<{
   gameName: string,
@@ -13,12 +14,25 @@ const emit = defineEmits<{
   (e: 'card-drawn', card: Card): void
 }>();
 
+const currentPlayerStore = useCurrentPlayerStore()
+const isMyTurn = computed(
+  () => currentPlayerStore.currentPlayer === props.playerName
+)
+const isDrawing = ref(false)
+const canDraw = computed(() => isMyTurn.value && !isDrawing.value)
 
 async function drawCard() {
-  const card = await api.take_cards(props.gameName, props.playerName, 1)
-  const drawn = card[0];
-  emit('card-drawn', drawn);
-  return drawn;
+  if (!canDraw.value) return
+
+  isDrawing.value = true
+
+  try {
+    const cards = await api.take_cards(props.gameName, props.playerName, 1)
+    const drawn = cards[0]
+    emit("card-drawn", drawn)
+  } finally {
+    isDrawing.value = false
+  }
 }
 </script>
 
@@ -28,6 +42,7 @@ async function drawCard() {
       :src="deckImg"
       alt="Deck"
       class="deck-image"
+      :class="{ disabled: isDrawing }"
       @click="drawCard"
     />
   </div>
@@ -53,5 +68,10 @@ async function drawCard() {
 
 .deck-image:hover {
   transform: scale(1.1); 
+}
+
+.deck-image.disabled {
+  pointer-events: none;
+  opacity: 0.6;
 }
 </style>
