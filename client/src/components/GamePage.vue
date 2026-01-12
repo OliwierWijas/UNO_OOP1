@@ -103,6 +103,8 @@ async function handleCardDrawn(card: Card) {
 async function handleCardPlayed(payload: { cardIndex: number; card: Card }) {
   if (!currentPlayer.value) return
 
+  cardsStore.splice(payload.cardIndex, 0, payload.card)
+
   const ok = await api.play_card(gameName.value, payload.cardIndex)
 
   if (!ok) {
@@ -159,14 +161,14 @@ onMounted(async () => {
         />
 
         <template v-else-if="opponents.length === 2">
-          <OpponentHand :opponent="opponents[0]" class="opponent-left" />
-          <OpponentHand :opponent="opponents[1]" class="opponent-right" />
+          <OpponentHand v-bind:opponent="opponents[0]" class="opponent-left" />
+          <OpponentHand v-bind:opponent="opponents[1]" class="opponent-right" />
         </template>
 
         <template v-else-if="opponents.length === 3">
-          <OpponentHand :opponent="opponents[0]" class="opponent-left" />
-          <OpponentHand :opponent="opponents[1]" class="opponent-right" />
-          <OpponentHand :opponent="opponents[2]" class="opponent-top" />
+          <OpponentHand v-bind:opponent="opponents[0]" class="opponent-left" />
+          <OpponentHand v-bind:opponent="opponents[1]" class="opponent-right" />
+          <OpponentHand v-bind:opponent="opponents[2]" class="opponent-top" />
         </template>
 
         <template v-else-if="opponents.length >= 4">
@@ -186,7 +188,7 @@ onMounted(async () => {
         <Deck @card-drawn="handleCardDrawn" :game-name="gameName" :player-name="playerName"/>
       </div>
 
-      <PlayerHandComponent v-if="currentPlayer" :playerHand="currentPlayer" :cards="cards" @card-played="handleCardPlayed" />
+      <PlayerHandComponent v-if="currentPlayer" :playerHand="currentPlayer" :cards="cards" @play-card="handleCardPlayed" />
     </template>
   </div>
 </template>

@@ -28,12 +28,21 @@ export const useCardsStore = defineStore('cards', () => {
     cards.splice(index, 0, card)
   }
 
+  const splice = (start: number, deleteCount?: number, ...items: Card[]) => {
+    if (deleteCount === undefined) {
+      cards.splice(start, 0, ...items)
+    } else {
+      cards.splice(start, deleteCount, ...items)
+    }
+  }
+
   return {
     cards,
     topCard,
     set,
     push,
     clear,
-    restore
+    restore,
+    splice
   }
 })

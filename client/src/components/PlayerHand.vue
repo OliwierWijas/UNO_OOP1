@@ -17,7 +17,7 @@ const cards = computed(() => props.cards)
 const currentHand = computed(() => props.playerHand);
 
 const emit = defineEmits<{
-  (e: 'card-played', payload: { cardIndex: number; card: Card }): void;
+  (e: 'play-card', payload: { cardIndex: number; card: Card }): void;
 }>();
 
 const isMyTurn = computed(
@@ -25,10 +25,9 @@ const isMyTurn = computed(
 )
 
 function playCard(index: number) {
-  if (cards.value.length > 0) {
-    const card = cards.value.splice(index, 1)[0]
-    if (!card) return
-    emit('card-played', { cardIndex: index, card });
+  if (cards.value.length > index) {
+    const card = cards.value[index]
+    emit('play-card', { cardIndex: index, card });
   }
 }
 
@@ -52,10 +51,10 @@ const cardStyle = (index : number) => {
     <div v-if="isMyTurn" class="hand-cards">
       <UnoCard
         v-for="(card, index) in cards"
-        :key="index"
-        :card="card"
+        v-bind:key="index"
+        v-bind:card="card"
         class="uno-card"
-        :style="cardStyle(index)"
+        v-bind:style="cardStyle(index)"
         @click="playCard(index)"
       />
     </div>
