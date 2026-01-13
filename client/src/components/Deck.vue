@@ -43,7 +43,7 @@ async function drawCard() {
       alt="Deck"
       class="deck-image"
       :class="{ disabled: isDrawing }"
-      @click="drawCard"
+      v-on:@click="drawCard"
     />
   </div>
 </template>

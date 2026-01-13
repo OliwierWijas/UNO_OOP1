@@ -33,8 +33,14 @@ export type Card =
   | ActionCard
   | WildCard
 
-
+// NUMBERED | ACTION
 export type ColoredCard =
   Extract<Card, { color: Color }>
 
-export type CardTypes = Pick<Card, 'type'>
+export type Typed = Pick<Card, 'type'>
+type CardType = Card['type']
+
+type x = Pick<NumberedCard, 'type' | 'color'>
+type y = Omit<NumberedCard, 'type'>
+
+//partial

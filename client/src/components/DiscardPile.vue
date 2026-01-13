@@ -13,7 +13,6 @@ const hasTopCard = computed(() => topCard.value !== null)
 <template>
   <div class="discard-pile">
     <UnoCard v-if="hasTopCard" :card="topCard" />
-
     <div
       v-else
       class="empty-space"
@@ -23,6 +22,12 @@ const hasTopCard = computed(() => topCard.value !== null)
 </template>
 
 <style>
+
+
+
+
+
+
 .discard-pile {
   display: flex;
   justify-content: center;
