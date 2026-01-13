@@ -15,6 +15,7 @@ import { useDiscardPileStore } from '@/stores/DiscardPileStore';
 import { useCardsStore } from '@/stores/CardsStore';
 
 const route = useRoute();
+//talk about root params also
 const gameName = computed(() => (route.query.gameName as string) ?? "DefaultGame")
 const playerName = computed(() => (route.query.playerName as string) ?? "Player")
 

@@ -18,7 +18,8 @@ const canJoinGame = computed(() => playerName.value.trim().length > 0);
 const canCreateGame = computed(() => canJoinGame.value && newGameName.value.trim().length > 0)
 
 function goToGame(gameName: string) {
-  return router.push({
+  router.push({
+    //name: `Game/${gameName}`,
     name: "Game",
     query: {
       playerName: playerName.value,
@@ -33,7 +34,7 @@ async function createGame() {
   try {
     await api.create_game(newGameName.value);
     await api.create_player_hand(playerName.value, newGameName.value);
-    await goToGame(newGameName.value)
+    goToGame(newGameName.value)
   } catch (error) {
     console.error('Error in createGame:', error);
   }
@@ -74,6 +75,11 @@ onMounted(async () => {
 })
 
 </script>
+
+<!-- <input
+  :value="playerName"
+  @input="playerName = $event.target.value"
+/> -->
 
 <template>
   <div class="start-page">

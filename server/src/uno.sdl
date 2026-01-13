@@ -1,3 +1,5 @@
+//interface, implements, union
+
 type Game {
   name: String!
   state: String!

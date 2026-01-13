@@ -5,6 +5,7 @@ import type { Game } from 'domain/src/model/game'
 export const useOngoingGamesStore = defineStore('ongoing games', () => {
   const ongoingGamesList = reactive<Game[]>([])
   const ongoingGames = computed((): Reactive<Readonly<Game[]>> => ongoingGamesList)
+  
   const addGame = (game: Game) => {
     if (!ongoingGamesList.find(g => g.name === game.name)) {
       ongoingGamesList.push(game)

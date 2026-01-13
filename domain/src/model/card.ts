@@ -4,6 +4,10 @@ export function isColoredCard(card: Card): card is ColoredCard {
   return card.type !== 'WILD' && card.type !== 'DRAW4'
 }
 
+// if (isColoredCard(card)) {
+//   card.color
+// }
+
 export function isNumberedCard(card: Card): card is NumberedCard {
   return card.type === 'NUMBERED'
 }
